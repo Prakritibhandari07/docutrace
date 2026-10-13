@@ -1246,19 +1246,12 @@ def extract_citation_ids(answer):
 
 
 
+    
     citation_ids = re.findall(
-
-
-
-        r"**\\[**(E\d+)**\\]**",
-
-
-
+        r"\[(E\d+)\]",
         answer
-
-
-
     )
+
 
 
 
@@ -1642,23 +1635,20 @@ def display_evidence_verification(
 
 
 
+        
         except Exception as e:
-
-
-
+            import traceback
+            traceback.print_exc()
             st.error(
-
-
-
                 f"Evidence verification failed: {e}"
-
-
-
             )
-
-
-
             return
+
+    if not verification_results:
+        st.info(
+            "No cited claims were available for verification."
+        )
+
 
 
 
@@ -2602,19 +2592,15 @@ if st.button(
 
 
 
-                display_evidence_verification(
-
-
-
-                    answer,
-
-
-
-                    evidence
-
-
-
-                )
+                try:
+                    display_evidence_verification(
+                        answer,
+                        evidence
+                    )
+                except Exception:
+                    import traceback
+                    traceback.print_exc()
+                    st.error("Verification error. Check the PowerShell terminal.")
 
 
 

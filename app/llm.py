@@ -158,10 +158,11 @@ Write the answer now.
     except requests.exceptions.Timeout:
         return "The model took too long to respond. Please try again."
 
-    except requests.exceptions.ConnectionError:
+    except requests.exceptions.ConnectionError as error:
+        print("OLLAMA CONNECTION ERROR:", repr(error))
         return (
             "Could not connect to Ollama. "
-            "Make sure the Ollama server is running."
+            "Check the terminal for the connection error."
         )
 
     except requests.exceptions.RequestException as error:

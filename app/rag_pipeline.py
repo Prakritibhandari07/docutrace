@@ -114,6 +114,7 @@ def find_supporting_evidence(claim, evidence):
     return citations
 
 
+
 def remove_existing_citations(text):
     """
     Remove existing E-style citations so we can attach
@@ -124,6 +125,8 @@ def remove_existing_citations(text):
         "",
         text
     ).strip()
+
+
 
 
 def deduplicate_bullets(answer):

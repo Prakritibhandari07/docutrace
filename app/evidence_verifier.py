@@ -1,5 +1,6 @@
 import re
 import requests
+import traceback
 
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
@@ -217,6 +218,7 @@ def direct_support_check(claim, evidence_text):
 # LLM VERIFICATION
 # ============================================================
 
+
 def llm_verify_claim(claim, evidence_items):
     """
     Ask the language model to verify one claim against its
@@ -260,10 +262,8 @@ RULES:
 8. Use Supported only when all important parts are supported.
 9. Use Partially Supported when some parts are supported but
    other important parts are missing or unverified.
-10. Use Unsupported when the evidence does not establish
-    the claim.
-11. Explain briefly why the evidence supports or fails to
-    support the claim.
+10. Use Unsupported when the evidence does not establish the claim.
+11. Explain briefly why the evidence supports or fails to support it.
 12. Do not mention unrelated facts.
 
 Return exactly this format:
@@ -286,32 +286,32 @@ Unsupported
                 "stream": False,
                 "options": {
                     "temperature": 0.0,
-                    "num_predict": 160
-                }
+                    "num_predict": 160,
+                },
             },
-            timeout=120
+            timeout=120,
         )
 
         response.raise_for_status()
-
         output = response.json().get("response", "").strip()
 
     except Exception as exc:
+        traceback.print_exc()
         return {
             "status": "Unsupported",
-            "reason": f"Verification failed: {exc}"
+            "reason": f"Verification failed: {exc}",
         }
 
     status_match = re.search(
         r"STATUS\s*:\s*(Supported|Partially Supported|Unsupported)\b",
         output,
-        re.IGNORECASE
+        re.IGNORECASE,
     )
 
     reason_match = re.search(
         r"REASON\s*:\s*(.*)",
         output,
-        re.IGNORECASE | re.DOTALL
+        re.IGNORECASE | re.DOTALL,
     )
 
     if status_match:
@@ -328,19 +328,15 @@ Unsupported
 
     reason = (
         reason_match.group(1).strip()
-        if reason_match
+        if reason_match and reason_match.group(1).strip()
         else "The model did not provide a valid verification reason."
     )
 
     return {
         "status": status,
-        "reason": reason
+        "reason": reason,
     }
 
-
-# ============================================================
-# VERIFY ONE CLAIM
-# ============================================================
 
 def verify_claim(claim, evidence_ids, evidence):
     """Verify a single claim against its cited evidence."""
