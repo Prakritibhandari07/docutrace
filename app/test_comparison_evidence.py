@@ -5,6 +5,9 @@ comparison, evidence = compare_documents(
     ["OSI and TCPIP.pdf", "sWITCHING.pdf"]
 )
 
+print("\n========== COMPARISON RESULT ==========\n")
+print(comparison)
+
 print("\n========== RETRIEVED EVIDENCE ==========\n")
 
 for item in evidence:
