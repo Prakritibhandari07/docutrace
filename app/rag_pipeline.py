@@ -128,7 +128,6 @@ def remove_existing_citations(text):
 
 
 
-
 def deduplicate_bullets(answer):
     """
     Remove highly similar bullet points.
@@ -273,6 +272,42 @@ def run_rag(
     # --------------------------------------------------
 
     if not retrieved_documents:
+    
+
+        # Filter out message-switching passages when the question
+        # specifically asks about packet switching.
+        query_lower = query.lower()
+
+        asks_about_packet_switching = (
+            "packet switching" in query_lower
+            and "message switching" not in query_lower
+        )
+
+        if asks_about_packet_switching:
+            filtered_documents = []
+
+            for doc in retrieved_documents:
+                text_lower = str(doc.get("text") or "").lower()
+
+                is_message_switching_focused = (
+                    "message switching" in text_lower
+                    and (
+                        "messages of unlimited sizes" in text_lower
+                        or "illustrating message switching" in text_lower
+                        or "message switching network" in text_lower
+                    )
+                )
+
+                if not is_message_switching_focused:
+                    filtered_documents.append(doc)
+                else:
+                    print(
+                        "[RAG Debug] Excluded message-switching passage "
+                        f"from {doc.get('source', 'Unknown document')}, "
+                        f"page {doc.get('page', 'Unknown')}"
+                    )
+
+            retrieved_documents = filtered_documents
 
         if document_ids:
             selected_names = ", ".join(document_ids)

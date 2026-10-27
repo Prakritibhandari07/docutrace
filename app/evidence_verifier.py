@@ -243,33 +243,33 @@ PASSAGE:
     prompt = f"""
 You are a strict document evidence verification system.
 
-Verify ONE claim using ONLY the supplied evidence.
+Verify exactly ONE claim against the supplied evidence.
 
-CLAIM:
+CLAIM TO VERIFY:
 {claim}
 
 DOCUMENT EVIDENCE:
 {context}
 
 RULES:
-1. Use only the supplied document evidence.
-2. Do not use outside knowledge.
-3. Check every important part of the claim.
-4. Textual similarity alone does not prove support.
-5. Check whether the evidence supports the claim's meaning.
-6. Pay attention to negation, quantities, dates, and conditions.
-7. Do not infer details that the evidence does not establish.
-8. Use Supported only when all important parts are supported.
-9. Use Partially Supported when some parts are supported but
-   other important parts are missing or unverified.
-10. Use Unsupported when the evidence does not establish the claim.
-11. Explain briefly why the evidence supports or fails to support it.
-12. Do not mention unrelated facts.
+1. Use only the supplied evidence.
+2. Determine whether the evidence supports the meaning of this exact claim.
+3. A direct statement or faithful paraphrase counts as support.
+4. Check negation, quantities, conditions, and other important details.
+5. Do not evaluate other claims or facts.
+6. If all important parts are supported, return Supported.
+7. If only some meaningful parts are supported, return Partially Supported.
+8. If the main assertion is not established, return Unsupported.
+9. Write a reason specific to THIS claim.
+10. The reason must identify the relevant statement in the evidence
+    and explain how it supports or fails to support the claim.
+11. Never use evidence about a different claim to justify this claim.
+12. Do not repeat a generic reason for every claim.
 
 Return exactly this format:
 
 STATUS: Supported
-REASON: Explain how the evidence supports the claim.
+REASON: The evidence states [specific relevant statement], which supports the claim because [brief explanation].
 
 Choose only one status:
 Supported
@@ -338,8 +338,61 @@ Unsupported
     }
 
 
+def build_evidence_reason(claim, evidence_items):
+    """Build a reason using the actual cited evidence."""
+
+    claim_words = set(normalize_text(claim).split())
+    best_sentence = ""
+    best_score = 0
+
+    for item in evidence_items:
+        text = str(item.get("text", ""))
+
+        # Split the passage into sentences.
+        sentences = re.split(r"(?<=[.!?])\s+", text)
+
+        for sentence in sentences:
+            normalized_sentence = normalize_text(sentence)
+            sentence_words = set(normalized_sentence.split())
+
+            if not sentence_words:
+                continue
+
+            # Ignore very common words when comparing meanings.
+            ignored_words = {
+                "the", "a", "an", "is", "are", "was", "were",
+                "of", "to", "and", "or", "in", "on", "for",
+                "that", "this", "it", "as", "by", "with"
+            }
+
+            meaningful_claim_words = claim_words - ignored_words
+            meaningful_sentence_words = sentence_words - ignored_words
+
+            if not meaningful_claim_words:
+                continue
+
+            score = len(
+                meaningful_claim_words & meaningful_sentence_words
+            ) / len(meaningful_claim_words)
+
+            if score > best_score:
+                best_score = score
+                best_sentence = sentence.strip()
+
+    if best_sentence and best_score >= 0.5:
+        return (
+            f'The cited evidence states "{best_sentence}", '
+            f'which shares key details with the claim.'
+        )
+
+    return "The cited passage does not clearly match the claim's wording."
+
+
+
 def verify_claim(claim, evidence_ids, evidence):
-    """Verify a single claim against its cited evidence."""
+
+    print("NEW VERIFY_CLAIM FUNCTION IS RUNNING")
+    """Verify a claim against its cited evidence."""
 
     if not evidence_ids:
         return {
@@ -348,57 +401,68 @@ def verify_claim(claim, evidence_ids, evidence):
         }
 
     claim_evidence = get_claim_evidence(
-        evidence_ids,
-        evidence
+        evidence_ids, evidence
     )
 
     if not claim_evidence:
         return {
             "status": "Unsupported",
-            "reason": (
-                "No matching evidence was found for the "
-                "cited evidence IDs."
-            )
+            "reason": "No matching evidence was found for the cited IDs."
         }
 
-    # Do not automatically mark a claim Supported based only
-    # on lexical overlap. Ask the LLM to check its meaning.
-    return llm_verify_claim(
-        claim,
-        claim_evidence
+    evidence_text = "\n".join(
+        str(item.get("text", ""))
+        for item in claim_evidence
     )
 
+    normalized_claim = normalize_text(claim)
+    normalized_evidence = normalize_text(evidence_text)
 
-# ============================================================
-# VERIFY COMPLETE ANSWER
-# ============================================================
+    # Direct wording match: the claim is explicitly in the evidence.
+    if normalized_claim and normalized_claim in normalized_evidence:
+        return {
+            "status": "Supported",
+            "reason": "The cited evidence explicitly contains the claim's wording."
+        }
+
+    # Otherwise, use the LLM verifier.
+    result = llm_verify_claim(claim, claim_evidence)
+
+    status = str(result.get("status", "")).strip().lower()
+
+    if status == "supported":
+        result["status"] = "Supported"
+    elif status in {"partially supported", "partially_supported"}:
+        result["status"] = "Partially Supported"
+    else:
+        result["status"] = "Unsupported"
+
+    result["reason"] = build_evidence_reason(
+        claim, claim_evidence
+    )
+
+    return result
+
 
 def verify_answer(answer, evidence):
-    """
-    Verify every extracted claim independently.
+    """Verify each claim in an answer against its cited evidence."""
 
-    The returned list preserves the existing result structure
-    expected by the Streamlit interface.
-    """
     claims = extract_claims(answer)
-
-    results = []
+    verification_results = []
 
     for claim_data in claims:
         claim = claim_data["claim"]
         evidence_ids = claim_data["evidence_ids"]
 
-        verification = verify_claim(
+        result = verify_claim(
             claim,
             evidence_ids,
             evidence
         )
 
-        results.append({
-            "claim": claim,
-            "evidence_ids": evidence_ids,
-            "status": verification["status"],
-            "reason": verification["reason"]
-        })
+        result["claim"] = claim
+        result["evidence_ids"] = evidence_ids
 
-    return results
+        verification_results.append(result)
+
+    return verification_results    

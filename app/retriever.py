@@ -142,6 +142,9 @@ def retrieve_from_document(
             n_results=n_results,
             where={"source": document_id}
         )
+        print(f"[Retrieval Debug] Requested document: {document_id!r}")
+        print(f"[Retrieval Debug] Returned metadata: {results.get('metadatas')}")
+        print(f"[Retrieval Debug] Returned document count: {len(results.get('documents', [[]])[0])}")
 
     except Exception as e:
         print(f"Retrieval error for {document_id}: {e}")
@@ -205,7 +208,9 @@ def remove_duplicates(documents):
 # EVIDENCE FILTER
 # --------------------------------------------------
 
+
 def evidence_filter(documents):
+    """Keep passages with meaningful relevance and keyword overlap."""
     if not documents:
         return []
 
@@ -215,15 +220,14 @@ def evidence_filter(documents):
         relevance = document.get("relevance", 0)
         overlap = document.get("keyword_overlap", 0)
 
-        if relevance >= 0.65:
+        # Strong relevance still needs at least one matching keyword.
+        if relevance >= 0.50 and overlap >= 2:
             useful.append(document)
-            continue
-
-        if relevance >= 0.58 and overlap >= 1:
+        # Lower relevance needs stronger lexical support.
+        elif relevance >= 0.45 and overlap >= 3:
             useful.append(document)
 
     return useful
-
 
 # --------------------------------------------------
 # SELECT BEST EVIDENCE
@@ -357,5 +361,5 @@ def retrieve_documents(
 
     return select_best_evidence(
         all_documents,
-        max_documents=6
+        max_documents=12
     )

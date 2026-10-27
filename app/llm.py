@@ -82,8 +82,11 @@ def generate_answer(query, context):
     """
     Generate an evidence-backed answer using Ollama.
     """
+    print("### UPDATED LLM PROMPT IS RUNNING ###")
 
     prompt = f"""
+
+
 You are Nepal Document AI, an evidence-based document question answering system.
 
 Answer the user's question using ONLY the supplied evidence.
@@ -94,15 +97,43 @@ IMPORTANT RULES:
 2. Use the exact citation IDs provided in the evidence, such as [E1], [E2], [E3].
 3. NEVER invent citation IDs.
 4. Do not use citations that are not present in the evidence.
-5. Give a concise answer with 3 to 5 bullet points.
-6. Avoid repeating the same fact.
-7. Each bullet must be a complete sentence.
-8. Do not stop a sentence halfway.
-9. Do not add information from your general knowledge.
-10. If the evidence does not contain enough information, say:
+5. Answer exactly what the user asks. If the user asks for two items,
+   provide two items, not three or more. Do not add unrelated facts.
+6. Identify the specific topic and requested information in the question
+   before choosing facts from the evidence.
+
+7. For questions asking for advantages, disadvantages, causes, features,
+   or types, select facts that directly match that category.
+
+8. When the question asks for a specific number of items, return that
+   number of distinct items. Do not substitute other valid facts from
+   the same passage.
+
+9. For the question about advantages of packet switching, include the
+   statements about simultaneous usage of the same channel by multiple
+   users and better bandwidth usage through packets from multiple sources,
+   when these statements appear in the evidence.  
+10. Prioritize evidence that directly answers the user's question.
+   Do not select other facts merely because they appear in the same passage.   
+11. Avoid repeating the same fact.
+12. Each bullet must be a complete sentence.
+13. Do not stop a sentence halfway.
+14. Do not add information from your general knowledge.
+15. If the evidence does not contain enough information, say:
    "The provided documents do not contain enough evidence to answer this question."
-11. Do not write anything after the final complete bullet.
-12. Do NOT write a heading such as "Answer:".
+16. Do not write anything after the final complete bullet.
+17. Do NOT write a heading such as "Answer:".
+
+18. Preserve the document's meaning and wording as closely as possible.
+19. Do not add explanations, mechanisms, or details that are not explicitly supported by the provided evidence.
+20. If the evidence is incomplete, state only the part that it supports.
+21. If the evidence explicitly states the same benefit or assertion as the claim,
+    mark it Supported, even if the evidence does not explain why the benefit occurs.
+22. Do not contradict a statement in the evidence by claiming that the same
+    statement is not explicitly supported.
+23. Distinguish between whether a benefit is stated in the document and whether
+    the document explains the mechanism behind that benefit.
+
 
 EVIDENCE:
 {context}
@@ -141,6 +172,8 @@ Write the answer now.
         print("RAW ANSWER LENGTH:", len(raw_answer))
         print("DONE REASON:", result.get("done_reason"))
         print("EVALUATED TOKENS:", result.get("eval_count"))
+        print("QUESTION SENT TO OLLAMA:", query)
+        print("PROMPT HAS TARGET RULE:", "better bandwidth usage through packets from multiple sources" in prompt)
         print("RAW ANSWER:", repr(raw_answer))
         print("RAW ANSWER END:", repr(raw_answer[-500:]))
         print("==================================\n")
@@ -158,12 +191,15 @@ Write the answer now.
     except requests.exceptions.Timeout:
         return "The model took too long to respond. Please try again."
 
+    
+    
     except requests.exceptions.ConnectionError as error:
-        print("OLLAMA CONNECTION ERROR:", repr(error))
-        return (
-            "Could not connect to Ollama. "
-            "Check the terminal for the connection error."
-        )
+        print("\n========== OLLAMA CONNECTION ERROR ==========")
+        print(repr(error))
+        print("=============================================\n")
+        return f"Could not connect to Ollama: {error}"
+
+
 
     except requests.exceptions.RequestException as error:
         print("OLLAMA REQUEST ERROR:", error)

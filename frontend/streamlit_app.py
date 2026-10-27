@@ -2748,123 +2748,114 @@ if st.button("Compare Documents", key="run_document_comparison"):
 
                 st.markdown(comparison)
 
-
-
+                
                 st.markdown("### 📚 Evidence by Document")
 
+                comparison_text = str(comparison)
 
+                used_citation_ids = set(
+                    re.findall(r"\b(E\d+)\b", comparison_text)
+                )
 
                 evidence_by_document = {}
 
-
-
                 for item in comparison_evidence:
+                    evidence_id = str(
+                        item.get("id")
+                        or item.get("evidence_id")
+                        or item.get("citation_id")
+                        or ""
+                    )
+                    
+
+                    document_name = str(
+                        item.get("document")
+                        or item.get("source")
+                        or item.get("document_id")
+                        or "Unknown document"
+                    ).strip()
 
                     document_name = (
-
-                        item.get("document")
-
-                        or item.get("source")
-
-                        or item.get("document_id")
-
-                        or "Unknown document"
-
+                        document_name.replace("\\", "/").split("/")[-1]
                     )
 
-
-
                     evidence_by_document.setdefault(
-
                         document_name, []
-
                     ).append(item)
 
+              
 
+                   
 
                 for selected_name in comparison_document_names:
+                    matching_evidence = evidence_by_document.get(
+                        selected_name, []
+                    )
 
+                    matching_evidence = sorted(
+                        matching_evidence,
+                        key=lambda item: float(item.get("relevance") or 0),
+                        reverse=True,
+                    )
 
-
-                    matching_evidence = evidence_by_document.get(selected_name, [])
-
-
+                    matching_evidence = [
+                        item for item in matching_evidence
+                        if float(item.get("relevance") or 0) >= 0.5
+                    ][:3]
 
                     st.markdown(f"#### 📄 {selected_name}")
 
-
-
                     if not matching_evidence:
-
-
-
                         st.warning(
-
-
-
-                            "No relevant evidence was retrieved from this document "
-
-
-
-                            "for the comparison question."
-
-
-
+                            "No relevant evidence was retrieved from this "
+                            "document for the comparison question."
                         )
-
-
-
                         continue
 
+                    for index, item in enumerate(
+                        matching_evidence, start=1
+                    ):
+                        evidence_id = (
+                            item.get("id")
+                            or item.get("evidence_id")
+                            or item.get("citation_id")
+                            or f"E{index}"
+                        )
 
-
-                    for item in matching_evidence:
-
-
-
-                        evidence_id = item.get("id", "Unknown")
-
-
-
-                        page = item.get("page", "Unknown")
-
-
+                        page = item.get(
+                            "page", item.get("page_number", "Unknown")
+                        )
+                        evidence_text = (
+                            item.get("text")
+                            or item.get("content")
+                            or item.get("chunk")
+                            or item.get("evidence")
+                            or ""
+                        )
 
                         relevance = item.get("relevance")
 
+                        with st.container(border=True):
+                            st.markdown(
+                                f"**[{evidence_id}]** · Page {page}"
+                            )
 
-
-                        with st.expander(
-
-
-
-                            f"[{evidence_id}] Page {page}"
-
-
-
-                        ):
-
-
-
-                            st.write(item.get("text", ""))
-
-
+                            if evidence_text:
+                                st.write(evidence_text)
+                            else:
+                                st.warning(
+                                    "Evidence text is missing from this item."
+                                )
 
                             if relevance is not None:
-
-
-
                                 st.caption(
-
-
-
                                     f"Retrieval relevance: {relevance}"
-
-
-
                                 )
 
 
+
+
+                
 
             except Exception as e:
 
