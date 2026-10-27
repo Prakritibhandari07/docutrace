@@ -1,7 +1,6 @@
 \# 🔎 DocuTrace
 
 
-
 \### Search. Compare. Trace the evidence.
 
 
