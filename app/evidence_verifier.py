@@ -36,7 +36,7 @@ def split_into_claims(text):
 
     # Remove common Markdown bullet markers.
     text = re.sub(r"(?m)^\s*[-*•]\s+", "", text)
-
+    
     # Remove numbered-list markers.
     text = re.sub(r"(?m)^\s*\d+[.)]\s+", "", text)
 
@@ -436,10 +436,11 @@ def verify_claim(claim, evidence_ids, evidence):
         result["status"] = "Partially Supported"
     else:
         result["status"] = "Unsupported"
-
-    result["reason"] = build_evidence_reason(
-        claim, claim_evidence
-    )
+ 
+    if not result.get("reason"):
+        result["reason"] = build_evidence_reason(
+            claim, claim_evidence
+        )
 
     return result
 
@@ -465,4 +466,4 @@ def verify_answer(answer, evidence):
 
         verification_results.append(result)
 
-    return verification_results    
+    return verification_results
