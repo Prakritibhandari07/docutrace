@@ -1,9 +1,68 @@
 import re
 from difflib import SequenceMatcher
 
-from app.retriever import retrieve_documents
+from app.retriever import retrieve_documents, get_collection
 from app.llm import generate_answer
 
+def get_adjacent_page_context(retrieved_documents):
+    """
+    Fetch the preceding page when a retrieved passage contains
+    a likely reference to information introduced earlier.
+
+    Context is kept separate from the original evidence so that
+    its document and page citations remain accurate.
+    """
+    collection = get_collection()
+
+    context_documents = {}
+    pronoun_pattern = re.compile(
+        r"\b(it|they|this|these|those|such|its|their)\b",
+        re.IGNORECASE
+    )
+
+    for index, doc in enumerate(retrieved_documents, start=1):
+        page = doc.get("page")
+        source = doc.get("source")
+        text = doc.get("text", "")
+
+        if not source or not isinstance(page, int) or page <= 1:
+            continue
+
+        if not pronoun_pattern.search(text):
+            continue
+
+        previous_page = page - 1
+        key = (source, previous_page)
+
+        if key not in context_documents:
+            results = collection.get(
+                where={
+                    "$and": [
+                        {"source": source},
+                        {"page": previous_page}
+                    ]
+                },
+                include=["documents", "metadatas"]
+            )
+
+            context_documents[key] = {
+                "documents": results.get("documents") or [],
+                "metadatas": results.get("metadatas") or [],
+                "context_for": set()
+            }
+
+        context_documents[key]["context_for"].add(f"E{index}")
+
+    return [
+        {
+            "source": source,
+            "page": page,
+            "text": text,
+            "context_for": sorted(data["context_for"])
+        }
+        for (source, page), data in context_documents.items()
+        for text in data["documents"]
+    ]
 
 def normalize_text(text):
     """Normalize text for similarity comparison."""
@@ -220,7 +279,17 @@ def attach_citations(answer, evidence):
             for citation in citations
             if citation in valid_ids
         ]
+        context_ids = [
+            item["id"]
+            for item in evidence
+            if item.get("context_for")
+            and any(
+                context_id in citations
+                for context_id in item["context_for"]
+            )
+        ]
 
+        citations = list(dict.fromkeys(citations + context_ids))
         if citations:
             citation_text = "".join(
                 f" [{citation}]"
@@ -266,66 +335,58 @@ def run_rag(
         document_id=document_id,
         document_ids=document_ids
     )
+    # Filter out message-switching passages when the question
+    # specifically asks about packet switching.
+    query_lower = query.lower()
+
+    asks_about_packet_switching = (
+        "packet switching" in query_lower
+        and "message switching" not in query_lower
+    )
+
+    if asks_about_packet_switching:
+        filtered_documents = []
+
+        for doc in retrieved_documents:
+            text_lower = str(doc.get("text") or "").lower()
+
+            is_message_switching_focused = (
+                "message switching" in text_lower
+                and (
+                    "messages of unlimited sizes" in text_lower
+                    or "illustrating message switching" in text_lower
+                    or "message switching network" in text_lower
+                )
+            )
+
+            if not is_message_switching_focused:
+                filtered_documents.append(doc)
+
+        retrieved_documents = filtered_documents
+
+
+
 
     # --------------------------------------------------
     # INSUFFICIENT EVIDENCE
     # --------------------------------------------------
 
     if not retrieved_documents:
-    
-
-        # Filter out message-switching passages when the question
-        # specifically asks about packet switching.
-        query_lower = query.lower()
-
-        asks_about_packet_switching = (
-            "packet switching" in query_lower
-            and "message switching" not in query_lower
-        )
-
-        if asks_about_packet_switching:
-            filtered_documents = []
-
-            for doc in retrieved_documents:
-                text_lower = str(doc.get("text") or "").lower()
-
-                is_message_switching_focused = (
-                    "message switching" in text_lower
-                    and (
-                        "messages of unlimited sizes" in text_lower
-                        or "illustrating message switching" in text_lower
-                        or "message switching network" in text_lower
-                    )
-                )
-
-                if not is_message_switching_focused:
-                    filtered_documents.append(doc)
-                else:
-                    print(
-                        "[RAG Debug] Excluded message-switching passage "
-                        f"from {doc.get('source', 'Unknown document')}, "
-                        f"page {doc.get('page', 'Unknown')}"
-                    )
-
-            retrieved_documents = filtered_documents
 
         if document_ids:
             selected_names = ", ".join(document_ids)
-
             message = (
                 "I could not find enough relevant information "
-                f"in the selected documents: {selected_names}"
+                f"in the selected documents: {selected_names}."
             )
 
         elif document_id:
-
             message = (
                 "I could not find enough relevant information "
                 f"in {document_id} to answer this question."
             )
 
         else:
-
             message = (
                 "I could not find enough relevant information "
                 "in your document library to answer this question."
@@ -336,49 +397,45 @@ def run_rag(
             []
         )
 
+    # ADD ADJACENT-PAGE CONTEXT
+    context_documents = get_adjacent_page_context(
+        retrieved_documents
+    )
+
+
     # --------------------------------------------------
     # CREATE EVIDENCE IDS
     # --------------------------------------------------
 
     evidence = []
 
-    for index, doc in enumerate(
-        retrieved_documents,
-        start=1
-    ):
+    for index, doc in enumerate(retrieved_documents, start=1):
+        evidence.append({
+            "id": f"E{index}",
+            "document": doc.get("source", "Unknown document"),
+            "page": doc.get("page", "Unknown"),
+            "relevance": doc.get("relevance"),
+            "distance": doc.get("distance"),
+            "text": doc.get("text", ""),
+            "context_for": []
+        })
 
-        evidence_id = f"E{index}"
+    # --------------------------------------------------
+    # ADD PREVIOUS-PAGE CONTEXT AS SEPARATE EVIDENCE
+    # --------------------------------------------------
 
-        evidence.append(
-            {
-                "id": evidence_id,
+    for context_doc in context_documents:
+        evidence_id = f"E{len(evidence) + 1}"
 
-                "document": doc.get(
-                    "source",
-                    "Unknown document"
-                ),
-
-                "page": doc.get(
-                    "page",
-                    "Unknown"
-                ),
-
-                "relevance": doc.get(
-                    "relevance",
-                    None
-                ),
-
-                "distance": doc.get(
-                    "distance",
-                    None
-                ),
-
-                "text": doc.get(
-                    "text",
-                    ""
-                )
-            }
-        )
+        evidence.append({
+            "id": evidence_id,
+            "document": context_doc["source"],
+            "page": context_doc["page"],
+            "relevance": None,
+            "distance": None,
+            "text": context_doc["text"],
+            "context_for": context_doc["context_for"]
+        })
 
     # --------------------------------------------------
     # BUILD LLM CONTEXT
@@ -387,7 +444,6 @@ def run_rag(
     context_parts = []
 
     for item in evidence:
-
         context_parts.append(
             f"""
 [EVIDENCE ID: {item['id']}]
@@ -401,9 +457,7 @@ PASSAGE:
 """
         )
 
-    context = "\n".join(
-        context_parts
-    )
+    context = "\n".join(context_parts)
 
     # --------------------------------------------------
     # GENERATE ANSWER
