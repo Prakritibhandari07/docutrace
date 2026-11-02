@@ -1,37 +1,42 @@
-from app.retriever import (
-    retrieve_from_document,
-    get_collection,
-    extract_query_keywords,
-    evidence_filter,
-    select_best_evidence,
-)
 
-query = "Explain circuit switching and its characteristics."
-document_name = "sWITCHING.pdf"
+from app.retriever import evidence_filter, select_best_evidence
 
-collection = get_collection()
-query_keywords = extract_query_keywords(query)
 
-raw_results = retrieve_from_document(
-    collection=collection,
-    query=query,
-    document_id=document_name,
-    query_keywords=query_keywords,
-    n_results=10,
-)
+def test_evidence_filter_removes_irrelevant_results():
+    relevant = {
+        "text": "Circuit switching establishes a dedicated path.",
+        "relevance": 0.9,
+        "keyword_overlap": 3,
+        "page": 2,
+    }
+    irrelevant = {
+        "text": "Completely unrelated material about cooking.",
+        "relevance": 0.1,
+        "keyword_overlap": 0,
+        "page": 8,
+    }
 
-print("\nRaw results:", len(raw_results))
+    filtered = evidence_filter([relevant, irrelevant])
 
-filtered_results = evidence_filter(raw_results)
-print("After evidence filter:", len(filtered_results))
+    assert relevant in filtered
+    assert irrelevant not in filtered
 
-selected_results = select_best_evidence(raw_results)
-print("After evidence selection:", len(selected_results))
 
-for result in selected_results:
-    print(
-        f"\nPage: {result['page']}"
-        f"\nScore: {result['relevance']}"
-        f"\nOverlap: {result['keyword_overlap']}"
-        f"\nText: {result['text'][:800]}"
-    )
+def test_select_best_evidence_ranks_results_by_relevance():
+    lower_ranked = {
+        "text": "Circuit switching reserves network resources.",
+        "relevance": 0.8,
+        "keyword_overlap": 2,
+        "page": 3,
+    }
+    higher_ranked = {
+        "text": "Circuit switching establishes a dedicated path.",
+        "relevance": 0.9,
+        "keyword_overlap": 3,
+        "page": 2,
+    }
+
+    selected = select_best_evidence([lower_ranked, higher_ranked])
+
+    assert selected[0] == higher_ranked
+    assert lower_ranked in selected

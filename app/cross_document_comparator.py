@@ -76,18 +76,37 @@ def retrieve_comparison_evidence(
                 if not text:
                     continue
 
-                text_lower = text.lower()
-                overlap = keyword_overlap(query_keywords, text)
-                relevance = float(doc.get("relevance") or 0)
 
-                print(
-                    f"[Comparison Debug] {document_id}: "
-                    f"relevance={relevance}, "
-                    f"keyword_overlap={overlap}"
+                text_lower = text.lower()
+                query_lower = query.lower()
+
+
+                # Filter passages for advantage questions.
+                asks_advantages = (
+                    "advantage" in query_lower or "benefit" in query_lower
                 )
 
-                # Exclude message-switching passages that are not useful
-                # evidence for a packet-switching question.
+                if asks_advantages:
+                    has_advantage_heading = any(
+                        word in text_lower
+                        for word in ("advantages", "advantage", "benefits", "benefit")
+                    )
+
+                    is_packet_switching_context = (
+                        "packet switching" in text_lower
+                        and "message switching" not in text_lower
+                        and "disadvantages" not in text_lower
+                        and "disadvantage" not in text_lower
+                    )
+
+                    if not (has_advantage_heading or is_packet_switching_context):
+                        print(
+                            f"[Comparison Debug] Skipped irrelevant passage: "
+                            f"{document_id}, page {doc.get('page', 'Unknown')}"
+                        )
+                        continue
+
+                # Filter passages that focus on message switching.
                 is_message_switching_focused = (
                     "message switching" in text_lower
                     and (
@@ -103,6 +122,43 @@ def retrieve_comparison_evidence(
                         f"{document_id}, page {doc.get('page', 'Unknown')}"
                     )
                     continue
+
+                # Filter passages for disadvantage questions.
+                asks_disadvantages = (
+                    "disadvantage" in query_lower
+                    or "limitation" in query_lower
+                    or "drawback" in query_lower
+                )
+
+                if asks_disadvantages:
+                    has_disadvantage_heading = any(
+                        word in text_lower
+                        for word in (
+                            "disadvantages",
+                            "disadvantage",
+                            "limitations",
+                            "limitation",
+                            "drawbacks",
+                            "drawback",
+                        )
+                    )
+
+                    if not has_disadvantage_heading:
+                        print(
+                            f"[Comparison Debug] Skipped passage without "
+                            f"disadvantages: {document_id}, "
+                            f"page {doc.get('page', 'Unknown')}"
+                        )
+                        continue
+
+                overlap = keyword_overlap(query_keywords, text)
+                relevance = float(doc.get("relevance") or 0)
+
+                print(
+                    f"[Comparison Debug] {document_id}: "
+                    f"relevance={relevance}, "
+                    f"keyword_overlap={overlap}"
+                )
 
                 if relevance >= 0.50 and overlap >= 2:
                     candidates.append(doc)
