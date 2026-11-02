@@ -67,7 +67,6 @@ def retrieve_comparison_evidence(
 
 
             candidates = []
-
             for doc in retrieved_documents:
                 if not isinstance(doc, dict):
                     continue
@@ -173,6 +172,7 @@ def retrieve_comparison_evidence(
                         f"relevance={relevance}, overlap={overlap}"
                     )
 
+
             # Rank each document's candidates by relevance.
             candidates.sort(
                 key=lambda item: float(item.get("relevance") or 0),
@@ -274,7 +274,7 @@ def generate_comparison(query: str, context: str, evidence=None):
         format_rule = "Give exactly ONE difference in one or two sentences."
         num_predict = 150
     else:
-        format_rule = "Give a concise answer with 2–4 key points."
+        format_rule = "Give a concise answer with 2-4 key points."
         num_predict = 300
 
     prompt = f"""
@@ -349,7 +349,7 @@ Available citation IDs: {", ".join(f"[{item}]" for item in sorted(
     valid_ids, key=lambda value: int(value[1:])
 ))}
 
-Write 2–4 concise factual sentences. Each factual sentence MUST end
+Write 2-4 concise factual sentences. Each factual sentence MUST end
 with a citation copied exactly from the available IDs. Select citations
 that directly support each sentence. Do not output uncited factual claims.
 Output only the answer.
@@ -389,6 +389,114 @@ Output only the answer.
         )
     except (ValueError, TypeError) as exc:
         return f"Could not process the comparison response: {exc}"
+
+
+def detect_contradictions(query: str, evidence: list):
+    """Identify evidence-backed contradictions across documents."""
+    if len(evidence) < 2:
+        return ""
+
+    cross_document_evidence = [
+        item for item in evidence
+        if item.get("id")
+        and item.get("text")
+        and item.get("document_id")
+    ]
+
+    if len({
+        item["document_id"] for item in cross_document_evidence
+    }) < 2:
+        return ""
+
+    context = build_comparison_context(cross_document_evidence)
+
+    valid_ids = {
+        item["id"] for item in cross_document_evidence
+    }
+
+    prompt = f"""
+You are DocuTrace's contradiction detection assistant.
+
+Question:
+{query}
+
+Evidence:
+{context}
+
+Identify only genuine factual contradictions between different documents.
+A contradiction means two sources make incompatible claims about the
+same subject and attribute.
+
+Rules:
+- Do not confuse different perspectives or complementary facts with
+  contradictions.
+- Do not invent facts.
+- Every finding must cite evidence from BOTH documents.
+- Use only the supplied evidence IDs.
+- Include document names and page numbers.
+- If no clear contradiction exists, state:
+  No clear contradictions were identified.
+- Return concise Markdown only.
+
+"""
+
+    try:
+        response = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": MODEL_NAME,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.0,
+                    "num_predict": 500,
+                },
+            },
+            timeout=180,
+        )
+        response.raise_for_status()
+
+        result = response.json().get("response", "").strip()
+
+        if not result:
+            return ""
+
+        cited_ids = set(re.findall(r"\[(E\d+)\]", result))
+
+        # Require valid citations from at least two documents.
+        cited_evidence = [
+            item for item in cross_document_evidence
+            if item["id"] in cited_ids
+        ]
+
+        cited_documents = {
+            item["document_id"] for item in cited_evidence
+        }
+
+        # A no-contradictions result does not require citations.
+        if re.fullmatch(
+            r"\s*no clear contradictions were identified\.?\s*",
+            result,
+            re.I,
+        ):
+            return result
+
+        # Other findings must cite valid evidence from both documents.
+        if (
+            not cited_ids
+            or not cited_ids.issubset(valid_ids)
+            or len(cited_documents) < 2
+        ):
+            return ""
+
+        return result
+    except (
+        requests.exceptions.RequestException,
+        ValueError,
+        TypeError,
+    ):
+        return ""
+
 
 
 # ============================================================
@@ -431,7 +539,7 @@ def compare_documents(query: str, document_ids: list, n_results: int = 6):
         ]
         balanced_evidence.extend(document_evidence[:3])
 
-    
+
     evidence = balanced_evidence
 
     # Identify documents that have no retrieved evidence.
@@ -452,6 +560,20 @@ def compare_documents(query: str, document_ids: list, n_results: int = 6):
         context,
         evidence=evidence,
     )
+
+
+    # Detect contradictions across the selected documents.
+    contradictions = detect_contradictions(
+        query.strip(),
+        evidence,
+    )
+
+    if contradictions:
+        comparison += (
+            "\n\n### Potential Contradictions\n"
+            + contradictions
+        )
+
 
     # Report documents without evidence.
     if missing_documents:
