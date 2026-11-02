@@ -45,9 +45,11 @@ STOP_WORDS = {
 def normalize_token(token):
     token = token.lower()
 
+    # Categories -> category
     if len(token) > 5 and token.endswith("ies"):
         return token[:-3] + "y"
 
+    # Switching -> switch
     if len(token) > 5 and token.endswith("ing"):
         token = token[:-3]
 
@@ -56,6 +58,7 @@ def normalize_token(token):
 
         return token
 
+    # Processed -> process
     if len(token) > 4 and token.endswith("ed"):
         token = token[:-2]
 
@@ -64,14 +67,19 @@ def normalize_token(token):
 
         return token
 
-    if len(token) > 4 and token.endswith("es"):
+    # Classes -> class, switches -> switch
+    if token.endswith(("sses", "ches", "shes", "xes", "zes")):
         return token[:-2]
 
+    # Preserve words ending in ss
+    if token.endswith("ss"):
+        return token
+
+    # Advantages -> advantage, models -> model
     if len(token) > 3 and token.endswith("s"):
         return token[:-1]
 
     return token
-
 
 def extract_query_keywords(query):
     words = re.findall(r"[a-zA-Z0-9]+", query.lower())
@@ -98,7 +106,32 @@ def keyword_overlap(query_keywords, text):
 
     return len(query_keywords.intersection(text_words))
 
+def query_phrase_overlap(query, text):
+    query_words = [
+        normalize_token(word)
+        for word in re.findall(r"[a-zA-Z0-9]+", query.lower())
+        if word not in STOP_WORDS and len(word) > 2
+    ]
 
+    text_words = [
+        normalize_token(word)
+        for word in re.findall(r"[a-zA-Z0-9]+", text.lower())
+    ]
+
+    if len(query_words) < 2:
+        return 0
+
+    query_phrases = {
+        (query_words[i], query_words[i + 1])
+        for i in range(len(query_words) - 1)
+    }
+
+    text_phrases = {
+        (text_words[i], text_words[i + 1])
+        for i in range(len(text_words) - 1)
+    }
+
+    return len(query_phrases.intersection(text_phrases))
 # --------------------------------------------------
 # SEMANTIC SCORE
 # --------------------------------------------------
@@ -111,7 +144,12 @@ def semantic_score(distance):
 # FINAL RELEVANCE SCORE
 # --------------------------------------------------
 
-def calculate_relevance(distance, overlap, total_keywords):
+def calculate_relevance(
+    distance,
+    overlap,
+    total_keywords,
+    phrase_overlap=0
+):
     semantic = semantic_score(distance)
 
     keyword_score = (
@@ -120,10 +158,13 @@ def calculate_relevance(distance, overlap, total_keywords):
         else 0
     )
 
-    score = semantic * 0.70 + keyword_score * 0.30
+    base_score = semantic * 0.70 + keyword_score * 0.30
+
+    phrase_bonus = min(phrase_overlap * 0.025, 0.05)
+
+    score = base_score + phrase_bonus
 
     return round(min(max(score, 0), 1), 3)
-
 
 # --------------------------------------------------
 # RETRIEVE FROM ONE DOCUMENT
@@ -164,10 +205,13 @@ def retrieve_from_document(
 
         overlap = keyword_overlap(query_keywords, text)
 
+        phrase_overlap = query_phrase_overlap(query, text)
+
         relevance = calculate_relevance(
             distance,
             overlap,
-            len(query_keywords)
+            len(query_keywords),
+            phrase_overlap
         )
 
         retrieved.append({
@@ -176,6 +220,7 @@ def retrieve_from_document(
             "page": metadata.get("page", "Unknown"),
             "distance": distance,
             "keyword_overlap": overlap,
+            "phrase_overlap": phrase_overlap,
             "relevance": relevance
         })
 
@@ -186,19 +231,26 @@ def retrieve_from_document(
 # REMOVE DUPLICATE CHUNKS
 # --------------------------------------------------
 
+
 def remove_duplicates(documents):
     unique = []
     seen = set()
 
     for document in documents:
         text = document.get("text", "").strip()
-
         normalized = re.sub(r"\s+", " ", text.lower())
 
-        if normalized in seen:
+        # Preserve identical text from different sources or pages.
+        key = (
+            document.get("source", "Unknown"),
+            document.get("page", "Unknown"),
+            normalized
+        )
+
+        if key in seen:
             continue
 
-        seen.add(normalized)
+        seen.add(key)
         unique.append(document)
 
     return unique
@@ -233,24 +285,16 @@ def evidence_filter(documents):
 # SELECT BEST EVIDENCE
 # --------------------------------------------------
 
+
 def select_best_evidence(documents, max_documents=6):
     if not documents:
         return []
 
-    # First, use the normal relevance filter.
     filtered_documents = evidence_filter(documents)
 
-    # If the strict filter rejects everything, keep the
-    # best-ranked retrieved passages instead of returning nothing.
+    # Reject all passages if none meet the relevance criteria.
     if not filtered_documents:
-        filtered_documents = sorted(
-            documents,
-            key=lambda item: (
-                item.get("relevance", 0),
-                item.get("keyword_overlap", 0)
-            ),
-            reverse=True
-        )
+        return []
 
     documents = remove_duplicates(filtered_documents)
 
@@ -280,6 +324,7 @@ def select_best_evidence(documents, max_documents=6):
             break
 
     return selected
+
 # --------------------------------------------------
 # MAIN RETRIEVER
 # --------------------------------------------------
@@ -338,11 +383,13 @@ def retrieve_documents(
                 continue
 
             overlap = keyword_overlap(query_keywords, text)
+            phrase_overlap = query_phrase_overlap(query, text)
 
             relevance = calculate_relevance(
                 distance,
                 overlap,
-                len(query_keywords)
+                len(query_keywords),
+                phrase_overlap
             )
 
             all_documents.append({
@@ -351,6 +398,7 @@ def retrieve_documents(
                 "page": metadata.get("page", "Unknown"),
                 "distance": distance,
                 "keyword_overlap": overlap,
+                "phrase_overlap": phrase_overlap,
                 "relevance": relevance
             })
 
@@ -359,7 +407,43 @@ def retrieve_documents(
 
     all_documents = remove_duplicates(all_documents)
 
+    print("\n========== RETRIEVAL SCORES ==========")
+    print("Query keywords:", query_keywords)
+
+    for doc in sorted(
+        all_documents,
+        key=lambda item: item.get("relevance", 0),
+        reverse=True
+    ):
+        print(
+            f"\nPage: {doc.get('page')} | "
+            f"Distance: {doc.get('distance'):.3f} | "
+            f"Overlap: {doc.get('keyword_overlap')} | "
+            f"Relevance: {doc.get('relevance')}"
+        )
+        print(doc.get("text", ""))
+
+    print("======================================\n")
+
     return select_best_evidence(
         all_documents,
         max_documents=12
     )
+
+    print("\n========== RETRIEVAL SCORES ==========")
+    print("Query keywords:", query_keywords)
+
+    for doc in sorted(
+        all_documents,
+        key=lambda item: item.get("relevance", 0),
+        reverse=True
+    ):
+        print(
+            f"\nPage: {doc.get('page')} | "
+            f"Distance: {doc.get('distance'):.3f} | "
+            f"Overlap: {doc.get('keyword_overlap')} | "
+            f"Relevance: {doc.get('relevance')}"
+        )
+        print(doc.get("text", "")[:250])
+
+    print("======================================\n")
