@@ -1,148 +1,128 @@
-\# 🔎 DocuTrace
+# DocuTrace
 
+### Search. Compare. Trace the Evidence.
 
+DocuTrace is a Python and Streamlit application for searching PDF documents, answering questions using document evidence, and comparing information across multiple documents.
 
-\### Search. Compare. Trace the evidence.
+It uses Retrieval-Augmented Generation (RAG), ChromaDB for vector search, and a locally running Ollama language model to generate evidence-backed answers with page-level citations.
 
+## Features
 
+- Upload and process PDF documents
+- Search document content using semantic retrieval
+- Ask questions about selected documents
+- Generate answers using RAG and a local language model
+- Display supporting evidence and page-level citations
+- Compare information across multiple documents
+- Verify answer claims against retrieved evidence
+- Manage and index a document library
 
-DocuTrace is an evidence-backed document search and comparison system that allows users to upload PDF documents, ask questions, retrieve relevant passages, and compare information across documents with page-level evidence citations.
+## Tech Stack
 
+- Python
+- Streamlit
+- ChromaDB
+- Ollama
+- Sentence Transformers
+- PyPDF
+- pytest
 
-
-The project combines document processing, semantic search, retrieval-augmented generation (RAG), local language models, and evidence verification into a single Streamlit application.
-
-
-
-\---
-
-
-
-\## ✨ Features
-
-
-
-\- 📄 Upload and process PDF documents
-
-\- 🔎 Semantic search across document content
-
-\- 💬 Ask questions about uploaded documents
-
-\- 🧠 Retrieval-Augmented Generation (RAG)
-
-\- 📑 Retrieve relevant evidence passages
-
-\- 📍 Page-level document citations
-
-\- 🔄 Compare information across multiple documents
-
-\- ⚖️ Identify differences and similarities using retrieved evidence
-
-\- 🧾 Display supporting evidence for generated answers
-
-\- 🔐 Local LLM inference using Ollama
-
-\- 🗂️ Document management and indexing
-
-\- ✅ Evidence and citation verification
-
-\- 🧪 Automated tests for major application components
-
-
-
-\---
-
-
-
-\## 🏗️ How DocuTrace Works
-
-
+## Architecture
 
 ```text
+PDF Documents
+      |
+      v
+Document Loader
+      |
+      v
+Text Cleaning and Chunking
+      |
+      v
+Embeddings and ChromaDB
+      |
+      v
+Semantic Retrieval
+      |
+      v
+RAG Pipeline
+      |
+      v
+Ollama LLM
+      |
+      v
+Answer + Evidence + Citations
+```
 
-&#x20;               ┌─────────────────────┐
+## Prerequisites
 
-&#x20;               │     PDF Documents   │
+- Python 3.11
+- [Ollama](https://ollama.com/) installed and running
+- Git
 
-&#x20;               └──────────┬──────────┘
+## Installation
 
-&#x20;                          │
+Clone the repository:
 
-&#x20;                          ▼
+```bash
+git clone https://github.com/Prakritibhandari07/docutrace.git
+cd docutrace
+```
 
-&#x20;               ┌─────────────────────┐
+Create and activate a virtual environment.
 
-&#x20;               │  Document Loader    │
+**Windows PowerShell:**
 
-&#x20;               └──────────┬──────────┘
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
 
-&#x20;                          │
+Install the dependencies:
 
-&#x20;                          ▼
+```powershell
+python -m pip install -r requirements.txt
+```
 
-&#x20;               ┌─────────────────────┐
+Download the language model:
 
-&#x20;               │ Text Chunking       │
+```powershell
+ollama pull qwen2.5:3b
+```
 
-&#x20;               └──────────┬──────────┘
+## Run the Application
 
-&#x20;                          │
+From the project root, run:
 
-&#x20;                          ▼
+```powershell
+python -m streamlit run frontend/streamlit_app.py
+```
 
-&#x20;               ┌─────────────────────┐
+Open the local URL displayed in the terminal.
 
-&#x20;               │ Embeddings          │
+## Usage
 
-&#x20;               └──────────┬──────────┘
+1. Start the application.
+2. Upload a PDF or select a document from the library.
+3. Ask a question about the selected document.
+4. Review the answer, supporting evidence, and citations.
+5. Use the comparison section to compare information across multiple documents.
 
-&#x20;                          │
+## Local Processing
 
-&#x20;                          ▼
+DocuTrace uses a local Ollama model for answer generation. Actual processing and data handling depend on the configured components and application settings.
 
-&#x20;               ┌─────────────────────┐
+## Testing
 
-&#x20;               │ Vector Store        │
+Run the available tests from the project root:
 
-&#x20;               └──────────┬──────────┘
+```powershell
+python -m pytest
+```
 
-&#x20;                          │
+## Author
 
-&#x20;                          ▼
+**Prakriti Bhandari**
 
-&#x20;               ┌─────────────────────┐
-
-&#x20;               │ Semantic Retrieval  │
-
-&#x20;               └──────────┬──────────┘
-
-&#x20;                          │
-
-&#x20;                          ▼
-
-&#x20;               ┌─────────────────────┐
-
-&#x20;               │ RAG Pipeline        │
-
-&#x20;               └──────────┬──────────┘
-
-&#x20;                          │
-
-&#x20;                          ▼
-
-&#x20;               ┌─────────────────────┐
-
-&#x20;               │ Local LLM (Ollama)  │
-
-&#x20;               └──────────┬──────────┘
-
-&#x20;                          │
-
-&#x20;                          ▼
-
-&#x20;               ┌─────────────────────┐
-
-&#x20;               │ Answer + Evidence   │
-
-&#x20;               └─────────────────────┘
-
+- GitHub: [Prakritibhandari07](https://github.com/Prakritibhandari07)
+- LinkedIn: [Prakriti Bhandari](https://www.linkedin.com/in/prakriti-bhandari-18pp)
