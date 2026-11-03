@@ -22,11 +22,7 @@ def create_chunks(pages):
         page_chunks = splitter.split_text(
             page["text"]
         )
-        for chunk in page_chunks:
-            if "ensures better bandwidth usage" in chunk.lower():
-                print("\n--- DEBUG CHUNK ---")
-                print(chunk)
-                print("--- END DEBUG CHUNK ---\n")
+        
 
         for chunk in page_chunks:
 
