@@ -108,6 +108,20 @@ Open the local URL displayed in the terminal.
 4. Review the answer, supporting evidence, and citations.
 5. Use the comparison section to compare information across multiple documents.
 
+## Application Screenshots
+
+### 1. Document Library
+
+![DocuTrace Document Library](screenshots/document-library.png)
+
+### 2. Question Answering
+
+![DocuTrace Question Answering](screenshots/question-answering.png)
+
+### 3. Supporting Evidence and Citations
+
+![DocuTrace Supporting Evidence](screenshots/supporting-evidence.png)
+
 ## Local Processing
 
 DocuTrace uses a local Ollama model for answer generation. Actual processing and data handling depend on the configured components and application settings.
