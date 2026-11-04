@@ -2,74 +2,99 @@
 
 ### Search. Compare. Trace the Evidence.
 
-DocuTrace is a Python and Streamlit application for searching PDF documents, answering questions using document evidence, and comparing information across multiple documents.
+**DocuTrace** is an AI-powered document intelligence application that helps users search PDF documents, ask natural-language questions, and compare information across multiple documents using evidence-backed answers.
 
-It uses Retrieval-Augmented Generation (RAG), ChromaDB for vector search, and a locally running Ollama language model to generate evidence-backed answers with page-level citations.
+Built with Python and Streamlit, DocuTrace uses Retrieval-Augmented Generation (RAG), ChromaDB vector search, Sentence Transformers, and a locally running Ollama language model to generate answers grounded in document content, with supporting evidence and page-level citations.
 
-## Features
+## Key Features
 
-- Upload and process PDF documents
-- Search document content using semantic retrieval
-- Ask questions about selected documents
-- Generate answers using RAG and a local language model
-- Display supporting evidence and page-level citations
-- Compare information across multiple documents
-- Verify answer claims against retrieved evidence
-- Manage and index a document library
+- **PDF Document Processing:** Upload and process PDF documents for searchable content.
+- **Semantic Search:** Retrieve relevant document passages using vector embeddings.
+- **AI-Powered Question Answering:** Ask natural-language questions about selected documents.
+- **Evidence-Backed Responses:** Display supporting passages and page-level citations alongside generated answers.
+- **Evidence Verification:** Evaluate answer claims against retrieved document evidence.
+- **Multi-Document Comparison:** Compare information across multiple documents using retrieved evidence.
+- **Document Library:** Manage and reuse indexed documents.
 
-## Tech Stack
+## Technology Stack
 
-- Python
-- Streamlit
-- ChromaDB
-- Ollama
-- Sentence Transformers
-- PyPDF
-- pytest
+| Technology | Purpose |
+|---|---|
+| Python | Core application logic |
+| Streamlit | Interactive user interface |
+| ChromaDB | Vector database and semantic retrieval |
+| Sentence Transformers | Text embeddings |
+| Ollama | Local language model inference |
+| PyPDF | PDF text extraction |
+| pytest | Automated testing |
 
-## Architecture
+## System Architecture
 
 ```text
-PDF Documents
-      |
-      v
-Document Loader
-      |
-      v
-Text Cleaning and Chunking
-      |
-      v
-Embeddings and ChromaDB
-      |
-      v
-Semantic Retrieval
-      |
-      v
-RAG Pipeline
-      |
-      v
-Ollama LLM
-      |
-      v
-Answer + Evidence + Citations
+              PDF Documents
+                    |
+                    v
+             Document Loader
+                    |
+                    v
+          Text Extraction & Cleaning
+                    |
+                    v
+             Text Chunking
+                    |
+                    v
+          Sentence Transformers
+                    |
+                    v
+             ChromaDB Index
+                    |
+                    v
+           Semantic Retrieval
+                    |
+                    v
+              RAG Pipeline
+                    |
+                    v
+              Ollama LLM
+                    |
+                    v
+          Generated Answer
+                    |
+                    v
+       Evidence & Page Citations
+                    |
+                    v
+          Evidence Verification
 ```
 
-## Prerequisites
+## How It Works
+
+1. **Document ingestion:** PDF files are uploaded and their text is extracted.
+2. **Text preprocessing:** Extracted content is cleaned and divided into smaller chunks while preserving page information.
+3. **Embedding generation:** Sentence Transformers converts text chunks into vector embeddings.
+4. **Vector indexing:** Chunks and their metadata are stored in ChromaDB.
+5. **Semantic retrieval:** Relevant passages are retrieved based on the user's question.
+6. **Answer generation:** The retrieved context is passed to an Ollama language model to generate an answer.
+7. **Evidence verification:** Generated claims are checked against supporting document passages.
+8. **Citation presentation:** Users can inspect supporting evidence and its corresponding document pages.
+
+## Installation and Setup
+
+### Prerequisites
 
 - Python 3.11
-- [Ollama](https://ollama.com/) installed and running
 - Git
+- [Ollama](https://ollama.com/)
+- A compatible local language model
 
-## Installation
-
-Clone the repository:
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/Prakritibhandari07/docutrace.git
 cd docutrace
 ```
 
-Create and activate a virtual environment.
+### 2. Create a virtual environment
 
 **Windows PowerShell:**
 
@@ -78,61 +103,67 @@ py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-Install the dependencies:
+### 3. Install dependencies
 
 ```powershell
 python -m pip install -r requirements.txt
 ```
 
-Download the language model:
+### 4. Start Ollama and download the model
 
 ```powershell
 ollama pull qwen2.5:3b
 ```
 
-## Run the Application
+Ensure Ollama is running before starting the application.
 
-From the project root, run:
+### 5. Run DocuTrace
 
 ```powershell
 python -m streamlit run frontend/streamlit_app.py
 ```
 
-Open the local URL displayed in the terminal.
+Open the local URL displayed in your terminal, usually:
 
-## Usage
-
-1. Start the application.
-2. Upload a PDF or select a document from the library.
-3. Ask a question about the selected document.
-4. Review the answer, supporting evidence, and citations.
-5. Use the comparison section to compare information across multiple documents.
+`http://localhost:8501`
 
 ## Application Screenshots
 
-### 1. Document Library
+### Document Library
 
 ![DocuTrace Document Library](screenshots/document-library.png)
 
-### 2. Question Answering
+### Question Answering
 
 ![DocuTrace Question Answering](screenshots/question-answering.png)
 
-### 3. Supporting Evidence and Citations
+### Supporting Evidence and Citations
 
 ![DocuTrace Supporting Evidence](screenshots/supporting-evidence.png)
 
-## Local Processing
+## Running Tests
 
-DocuTrace uses a local Ollama model for answer generation. Actual processing and data handling depend on the configured components and application settings.
-
-## Testing
-
-Run the available tests from the project root:
+Run the automated test suite from the project root:
 
 ```powershell
-python -m pytest
+python -m pytest app -q
 ```
+
+The current test suite has **60 passing tests and 2 skipped tests**. The skipped tests are optional Ollama integration tests.
+
+## Design Goals
+
+DocuTrace focuses on making document question answering more transparent and inspectable.
+
+Rather than presenting only a generated response, it provides supporting passages and citations so users can examine the source material behind an answer.
+
+## Future Improvements
+
+- Support for scanned PDFs through OCR.
+- Improved retrieval and ranking strategies.
+- More robust evaluation of generated answers.
+- Expanded document formats.
+- Deployment and accessibility improvements.
 
 ## Author
 
