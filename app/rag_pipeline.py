@@ -516,40 +516,5 @@ PASSAGE:
     # DEBUG
     # --------------------------------------------------
 
-    detected_citations = re.findall(
-        r"\[(E\d+)\]",
-        final_answer
-    )
-
-    print("\n========== RAG DEBUG ==========")
-
-    print(
-        "RETRIEVED EVIDENCE:",
-        len(evidence)
-    )
-
-    print(
-        "VALID EVIDENCE IDS:",
-        [item["id"] for item in evidence]
-    )
-
-    print(
-        "CITATIONS IN FINAL ANSWER:",
-        detected_citations
-    )
-
-    print(
-        "ANSWER LENGTH:",
-        len(final_answer)
-    )
-
-    print(
-        "FINAL ANSWER:",
-        repr(final_answer)
-    )
-
-    print(
-        "===============================\n"
-    )
-
+   
     return final_answer, evidence

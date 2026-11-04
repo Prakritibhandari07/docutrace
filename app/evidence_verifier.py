@@ -388,18 +388,13 @@ def build_evidence_reason(claim, evidence_items):
     return "The cited passage does not clearly match the claim's wording."
 
 
-
 def verify_claim(claim, evidence_ids, evidence):
+    """
+    Verify a claim using its cited evidence and any adjacent-page
+    context explicitly linked to that evidence.
+    """
 
-    print("NEW VERIFY_CLAIM FUNCTION IS RUNNING")
-    """Verify a claim against its cited evidence."""
-
-    if not evidence_ids:
-        return {
-            "status": "Unsupported",
-            "reason": "This claim has no evidence citation."
-        }
-
+    # Get the evidence directly cited by the claim.
     claim_evidence = get_claim_evidence(
         evidence_ids, evidence
     )
@@ -410,6 +405,15 @@ def verify_claim(claim, evidence_ids, evidence):
             "reason": "No matching evidence was found for the cited IDs."
         }
 
+    # Include adjacent-page context linked to the cited evidence.
+    related_ids = set(evidence_ids)
+
+    for item in evidence:
+        context_for = item.get("context_for", [])
+
+        if related_ids.intersection(context_for):
+            claim_evidence.append(item)
+
     evidence_text = "\n".join(
         str(item.get("text", ""))
         for item in claim_evidence
@@ -418,32 +422,48 @@ def verify_claim(claim, evidence_ids, evidence):
     normalized_claim = normalize_text(claim)
     normalized_evidence = normalize_text(evidence_text)
 
-    # Direct wording match: the claim is explicitly in the evidence.
     if normalized_claim and normalized_claim in normalized_evidence:
         return {
             "status": "Supported",
-            "reason": "The cited evidence explicitly contains the claim's wording."
+            "reason": "The cited evidence and its linked page context explicitly contain the claim's wording."
         }
 
-    # Otherwise, use the LLM verifier.
-    result = llm_verify_claim(claim, claim_evidence)
+    lexical_status = direct_support_check(
+        claim, evidence_text
+    )
 
-    status = str(result.get("status", "")).strip().lower()
+    if lexical_status == "Supported":
+        return {
+            "status": "Supported",
+            "reason": build_evidence_reason(
+                claim, claim_evidence
+            )
+        }
+
+    result = llm_verify_claim(
+        claim, claim_evidence
+    )
+
+    status = str(
+        result.get("status", "")
+    ).strip().lower()
 
     if status == "supported":
         result["status"] = "Supported"
-    elif status in {"partially supported", "partially_supported"}:
+    elif status in {
+        "partially supported",
+        "partially_supported"
+    }:
         result["status"] = "Partially Supported"
     else:
         result["status"] = "Unsupported"
- 
+
     if not result.get("reason"):
         result["reason"] = build_evidence_reason(
             claim, claim_evidence
         )
 
     return result
-
 
 def verify_answer(answer, evidence):
     """Verify each claim in an answer against its cited evidence."""

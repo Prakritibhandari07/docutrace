@@ -77,3 +77,26 @@ def test_verify_claim_preserves_llm_reason(monkeypatch):
 
     assert result["status"] == "Partially Supported"
     assert result["reason"] == expected_reason
+
+def test_explicit_channel_sharing_evidence_is_supported():
+    evidence = [
+        {
+            "id": "E2",
+            "document": "sWITCHING.pdf",
+            "page": 8,
+            "text": (
+                "It allows simultaneous usage of the same channel "
+                "by multiple users. It ensures better bandwidth usage."
+            ),
+        }
+    ]
+
+    result = evidence_verifier.verify_claim(
+        "Packet switching allows simultaneous usage of the same "
+        "channel by multiple users.",
+        ["E2"],
+        evidence,
+    )
+
+    assert result["status"] == "Partially Supported"
+    assert "simultaneous usage" in result["reason"].lower()
