@@ -1,4 +1,4 @@
-import re
+﻿import re
 import requests
 
 from app.retriever import (
@@ -49,8 +49,8 @@ def retrieve_comparison_evidence(
             retrieved_documents = retrieve_documents(
                 query=query,
                 document_id=document_id,
-                n_results=n_results,
-            ) or []
+                n_results=max(n_results, 12),
+                ) or []
 
             print(
                 f"[Comparison Debug] Requested document: {document_id!r}"
@@ -281,6 +281,18 @@ def generate_comparison(query: str, context: str, evidence=None):
 You are DocuTrace, a document comparison assistant.
 
 Answer the user's question using ONLY the retrieved evidence.
+
+IMPORTANT CONCEPT DISTINCTION:
+- Treat "circuit switching" and "virtual circuit switching" as
+  DIFFERENT networking techniques.
+- Do not use evidence about virtual circuit switching to explain
+  traditional circuit switching.
+- When comparing two concepts, identify evidence that directly
+  describes each concept before stating their differences.
+- If the retrieved evidence does not adequately explain one concept,
+  explicitly say that the evidence is insufficient for that part.
+- Never combine facts about different techniques as though they
+  describe the same technique.
 
 MANDATORY CITATION RULES:
 - Every factual sentence must end with one or more valid evidence citations.
