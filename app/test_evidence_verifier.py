@@ -78,7 +78,7 @@ def test_verify_claim_preserves_llm_reason(monkeypatch):
     assert result["status"] == "Partially Supported"
     assert result["reason"] == expected_reason
 
-def test_explicit_channel_sharing_evidence_is_supported():
+def test_explicit_channel_sharing_evidence_is_partially_supported(monkeypatch):
     evidence = [
         {
             "id": "E2",
@@ -90,6 +90,19 @@ def test_explicit_channel_sharing_evidence_is_supported():
             ),
         }
     ]
+
+    monkeypatch.setattr(
+        evidence_verifier,
+        "llm_verify_claim",
+        lambda claim, evidence_items: {
+            "status": "Partially Supported",
+            "reason": (
+                "The evidence establishes simultaneous usage "
+                "of the same channel by multiple users, "
+                "but does not independently identify the subject."
+            ),
+        },
+    )
 
     result = evidence_verifier.verify_claim(
         "Packet switching allows simultaneous usage of the same "
