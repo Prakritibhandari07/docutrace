@@ -197,6 +197,28 @@ flowchart TD
     class ANSWER,DISPLAY,VERIFY,RESULT,COMPOUT output
 ```
 
+## Technical Stack
+
+| Category | Technology | Purpose |
+|---|---|---|
+| Programming Language | Python | Core application logic |
+| Frontend | Streamlit | Interactive web interface |
+| PDF Processing | pypdf | PDF text extraction |
+| Text Chunking | LangChain Text Splitters | Recursive document chunking |
+| Vector Database | ChromaDB | Persistent document indexing and retrieval |
+| LLM Runtime | Ollama | Local language model execution |
+| Language Model | Qwen 2.5 3B | Context-based answer generation |
+| HTTP Client | Requests | Communication with local LLM services |
+| Testing | pytest | Automated application testing |
+
+### Engineering Decisions
+
+- **Local LLM inference:** Runs Qwen 2.5 3B through Ollama.
+- **Persistent vector storage:** Uses ChromaDB to retain indexed document chunks.
+- **Evidence-grounded generation:** Supplies retrieved document passages as context for answer generation.
+- **Deterministic citation matching:** Uses text similarity and keyword overlap to associate answer claims with supporting evidence.
+- **Context-aware retrieval:** Retrieves adjacent-page context to help resolve references spanning PDF pages.
+
 ### Main components
 
 - **Frontend:** Streamlit interface for uploading documents, asking questions, viewing evidence, and accessing analysis features.
