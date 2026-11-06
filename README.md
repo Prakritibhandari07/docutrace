@@ -141,6 +141,10 @@ Open the local URL displayed in your terminal, usually:
 
 ![DocuTrace Supporting Evidence](screenshots/supporting-evidence.png)
 
+### Demo
+
+![DocuTrace Demo](screenshots/DocuTrace_demo.gif)
+
 ## Running Tests
 
 Run the automated test suite from the project root:
