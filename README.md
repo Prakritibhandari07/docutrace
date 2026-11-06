@@ -145,6 +145,68 @@ Open the local URL displayed in your terminal, usually:
 
 ![DocuTrace Demo](screenshots/DocuTrace_demo.gif)
 
+## Architecture
+
+DocuTrace is a Streamlit-based document intelligence and retrieval-augmented generation (RAG) application. It supports PDF ingestion, evidence-grounded question answering, cross-document comparison, and document analysis.
+
+```mermaid
+flowchart TD
+    U["User"] --> UI["Streamlit Frontend"]
+
+    subgraph ING["1. Document Ingestion"]
+        UI --> PDF["PDF Upload"]
+        PDF --> SAVE["Save PDF to data/"]
+        SAVE --> LOAD["document_loader.load_pdf()"]
+        LOAD --> CHUNK["chunker.create_chunks()"]
+        CHUNK --> DELETE["Remove Existing Indexed Chunks"]
+        DELETE --> INDEX["vector_store.build_vector_database()"]
+        INDEX --> DB[("ChromaDB Persistent Store")]
+        INDEX --> LIB["document_library.add_document()"]
+    end
+
+    subgraph QA["2. Evidence-Grounded Question Answering"]
+        UI --> Q["User Question"]
+        Q --> RET["retriever.retrieve_documents()"]
+        DB --> RET
+        RET --> RANK["Relevance and Evidence Filtering"]
+        RANK --> CONTEXT["Adjacent-Page Context and Evidence Assembly"]
+        CONTEXT --> LLM["Ollama — Qwen 2.5 3B"]
+        LLM --> CIT["Deterministic Citation Attachment"]
+        CIT --> ANSWER["Answer and Supporting Evidence"]
+        ANSWER --> DISPLAY["Display Answer and Cited Evidence"]
+        DISPLAY --> VERIFY["evidence_verifier.verify_answer()"]
+        VERIFY --> RESULT["Evidence Verification Results"]
+    end
+
+    subgraph OTHER["3. Additional Document Features"]
+        UI --> DI["Document Intelligence"]
+        DI --> ANALYSIS["Keywords, Headings, Page Mapping, Extractive Summary"]
+
+        UI --> COMP["cross_document_comparator.compare_documents()"]
+        COMP --> COMPOUT["Cross-Document Comparison Results"]
+    end
+
+    classDef storage fill:#e8f0fe,stroke:#4776b4,color:#172b4d
+    classDef process fill:#edf6ed,stroke:#548b54,color:#183d18
+    classDef model fill:#f5edff,stroke:#8661b0,color:#34204b
+    classDef output fill:#fff4df,stroke:#b58a3c,color:#493512
+
+    class DB,LIB storage
+    class LOAD,CHUNK,DELETE,INDEX,RET,RANK,CONTEXT,CIT,DI,ANALYSIS,COMP process
+    class LLM model
+    class ANSWER,DISPLAY,VERIFY,RESULT,COMPOUT output
+```
+
+### Main components
+
+- **Frontend:** Streamlit interface for uploading documents, asking questions, viewing evidence, and accessing analysis features.
+- **Ingestion:** Extracts PDF pages, creates chunks, and stores indexed content in persistent ChromaDB storage.
+- **Retrieval:** Finds relevant document passages and filters evidence before answer generation.
+- **Answer generation:** Uses Ollama with Qwen 2.5 3B to generate answers from retrieved context.
+- **Citation handling:** Attaches citations through deterministic text-similarity and keyword-overlap matching.
+- **Evidence verification:** Checks the generated answer against retrieved evidence.
+- **Additional features:** Provides document intelligence analysis and cross-document comparison.
+
 ## Running Tests
 
 Run the automated test suite from the project root:
