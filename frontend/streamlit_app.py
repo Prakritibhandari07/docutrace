@@ -2517,19 +2517,20 @@ if st.button(
 
                 answer, evidence = run_rag(
 
-
-
                     query,
-
-
 
                     document_ids=selected_documents
 
-
-
                 )
 
-
+                if answer.startswith((
+                    "Could not connect to Ollama:",
+                    "The model took too long to respond.",
+                    "An error occurred while contacting Ollama:",
+                    "An unexpected error occurred:"
+                )):
+                    st.error(answer)
+                    st.stop()
 
                 st.markdown(
 
