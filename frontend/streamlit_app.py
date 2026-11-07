@@ -1246,7 +1246,7 @@ def extract_citation_ids(answer):
 
 
 
-    
+
     citation_ids = re.findall(
         r"\[(E\d+)\]",
         answer
@@ -1635,7 +1635,7 @@ def display_evidence_verification(
 
 
 
-        
+
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -1673,14 +1673,9 @@ def display_evidence_verification(
 
 
     supported_count = 0
-
-
-
     partial_count = 0
-
-
-
     unsupported_count = 0
+    verification_error_count = 0
 
 
 
@@ -1696,7 +1691,7 @@ def display_evidence_verification(
 
 
 
-            "Unsupported"
+            "Verification Error"
 
 
 
@@ -1728,16 +1723,15 @@ def display_evidence_verification(
 
 
 
+        elif status == "Verification Error":
+
+            icon = "⚙️"
+            verification_error_count += 1
+
         else:
 
-
-
             icon = "❌"
-
-
-
             unsupported_count += 1
-
 
 
         st.markdown(
@@ -1872,7 +1866,7 @@ def display_evidence_verification(
 
 
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
 
 
 
@@ -1934,6 +1928,15 @@ def display_evidence_verification(
 
         )
 
+    with col4:
+
+        st.metric(
+
+            "Verification Errors",
+
+            verification_error_count
+
+        )
 
 
 # ============================================================
@@ -2748,7 +2751,7 @@ if st.button("Compare Documents", key="run_document_comparison"):
 
                 st.markdown(comparison)
 
-                
+
                 st.markdown("### 📚 Evidence by Document")
 
                 comparison_text = str(comparison)
@@ -2766,7 +2769,7 @@ if st.button("Compare Documents", key="run_document_comparison"):
                         or item.get("citation_id")
                         or ""
                     )
-                    
+
 
                     document_name = str(
                         item.get("document")
@@ -2783,9 +2786,9 @@ if st.button("Compare Documents", key="run_document_comparison"):
                         document_name, []
                     ).append(item)
 
-              
 
-                   
+
+
 
                 for selected_name in comparison_document_names:
                     matching_evidence = evidence_by_document.get(
@@ -2855,7 +2858,7 @@ if st.button("Compare Documents", key="run_document_comparison"):
 
 
 
-                
+
 
             except Exception as e:
 

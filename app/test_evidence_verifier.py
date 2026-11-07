@@ -113,3 +113,33 @@ def test_explicit_channel_sharing_evidence_is_partially_supported(monkeypatch):
 
     assert result["status"] == "Partially Supported"
     assert "simultaneous usage" in result["reason"].lower()
+
+def test_ollama_connection_failure_returns_verification_error(monkeypatch):
+    def raise_connection_error(*args, **kwargs):
+        raise evidence_verifier.requests.exceptions.ConnectionError(
+            "Ollama is unavailable"
+        )
+
+    monkeypatch.setattr(
+        evidence_verifier.requests,
+        "post",
+        raise_connection_error,
+    )
+
+    evidence = [
+        {
+            "id": "E3",
+            "document": "networking.pdf",
+            "page": 5,
+            "text": "The network uses several switching techniques.",
+        }
+    ]
+
+    result = evidence_verifier.verify_claim(
+        "Packet switching allows simultaneous channel sharing.",
+        ["E3"],
+        evidence,
+    )
+
+    assert result["status"] == "Verification Error"
+    assert "Ollama is unavailable" in result["reason"]

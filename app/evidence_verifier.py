@@ -298,7 +298,7 @@ Unsupported
     except Exception as exc:
         traceback.print_exc()
         return {
-            "status": "Unsupported",
+            "status": "Verification Error",
             "reason": f"Verification failed: {exc}",
         }
 
@@ -314,15 +314,18 @@ Unsupported
         re.IGNORECASE | re.DOTALL,
     )
 
-    if status_match:
-        raw_status = status_match.group(1).lower()
+    if not status_match:
+        return {
+            "status": "Verification Error",
+            "reason": "The model returned an invalid or unrecognized verification response.",
+        }
 
-        if raw_status == "supported":
-            status = "Supported"
-        elif raw_status == "partially supported":
-            status = "Partially Supported"
-        else:
-            status = "Unsupported"
+    raw_status = status_match.group(1).lower()
+
+    if raw_status == "supported":
+        status = "Supported"
+    elif raw_status == "partially supported":
+        status = "Partially Supported"
     else:
         status = "Unsupported"
 
@@ -336,7 +339,6 @@ Unsupported
         "status": status,
         "reason": reason,
     }
-
 
 def build_evidence_reason(claim, evidence_items):
     """Build a reason using the actual cited evidence."""
@@ -455,9 +457,10 @@ def verify_claim(claim, evidence_ids, evidence):
         "partially_supported"
     }:
         result["status"] = "Partially Supported"
-    else:
+    elif status == "unsupported":
         result["status"] = "Unsupported"
-
+    else:
+        result["status"] = "Verification Error"
     if not result.get("reason"):
         result["reason"] = build_evidence_reason(
             claim, claim_evidence
