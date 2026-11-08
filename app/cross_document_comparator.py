@@ -457,6 +457,9 @@ Rules:
   contradictions.
 - Do not invent facts.
 - Every finding must cite evidence from BOTH documents.
+- Put each finding in a separate paragraph.
+- Each paragraph must independently cite valid evidence from
+  at least two different documents.
 - Use only the supplied evidence IDs.
 - Include document names and page numbers.
 - If no clear contradiction exists, state:
@@ -505,14 +508,37 @@ Rules:
             re.I,
         ):
             return result
-
-        # Other findings must cite valid evidence from both documents.
-        if (
-            not cited_ids
-            or not cited_ids.issubset(valid_ids)
-            or len(cited_documents) < 2
-        ):
+        # Every individual finding must cite at least two documents.
+        if not cited_ids or not cited_ids.issubset(valid_ids):
             return ""
+
+        finding_blocks = [
+            block.strip()
+            for block in re.split(r"\n\s*\n", result.strip())
+            if block.strip()
+        ]
+
+        for block in finding_blocks:
+            # Ignore standalone Markdown headings.
+            block = re.sub(
+                r"(?m)^\s*#{1,6}\s+.*$",
+                "",
+                block,
+            ).strip()
+
+            if not block:
+                continue
+
+            block_ids = set(re.findall(r"\[(E\d+)\]", block))
+
+            block_documents = {
+                item["document_id"]
+                for item in cross_document_evidence
+                if item["id"] in block_ids
+            }
+
+            if len(block_documents) < 2:
+                return ""
 
         return result
     except (

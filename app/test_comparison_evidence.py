@@ -279,3 +279,48 @@ def test_generate_comparison_rejects_uncited_sentence_after_retry(
     )
 
     assert "sentence-level citations" in result
+
+def test_detect_contradictions_rejects_separate_unsupported_findings(
+    monkeypatch,
+):
+    evidence = [
+        {
+            "id": "E1",
+            "document_id": "Document A.pdf",
+            "document": "Document A.pdf",
+            "page": 2,
+            "text": "The OSI model has seven layers.",
+        },
+        {
+            "id": "E2",
+            "document_id": "Document B.pdf",
+            "document": "Document B.pdf",
+            "page": 4,
+            "text": "The OSI model has five layers.",
+        },
+    ]
+    class MockResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {
+                "response": (
+                    "Finding 1: Document A reports seven layers [E1]."
+                    "\n\n"
+                    "Finding 2: Document B reports five layers [E2]."
+                )
+            }
+
+    monkeypatch.setattr(
+        cross_document_comparator.requests,
+        "post",
+        lambda *args, **kwargs: MockResponse(),
+    )
+
+    result = cross_document_comparator.detect_contradictions(
+        "Compare OSI layer counts",
+        evidence,
+    )
+
+    assert result == ""
