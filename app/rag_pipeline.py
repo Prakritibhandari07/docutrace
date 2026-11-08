@@ -425,6 +425,31 @@ def run_rag(
     # --------------------------------------------------
 
     for context_doc in context_documents:
+        context_text = context_doc.get("text", "")
+        normalized_context_text = " ".join(context_text.lower().split())
+
+        existing_evidence = next(
+            (
+                item for item in evidence
+                if (
+                    item["document"] == context_doc["source"]
+                    and str(item["page"]).strip() == str(context_doc["page"]).strip()
+                    and " ".join(item["text"].lower().split())
+                    == normalized_context_text
+                )
+            ),
+            None
+        )
+
+        if existing_evidence:
+            existing_evidence["context_for"] = sorted(
+                set(
+                    existing_evidence.get("context_for", [])
+                    + context_doc.get("context_for", [])
+                )
+            )
+            continue
+
         evidence_id = f"E{len(evidence) + 1}"
 
         evidence.append({
@@ -433,10 +458,9 @@ def run_rag(
             "page": context_doc["page"],
             "relevance": None,
             "distance": None,
-            "text": context_doc["text"],
-            "context_for": context_doc["context_for"]
+            "text": context_text,
+            "context_for": context_doc.get("context_for", [])
         })
-
     # --------------------------------------------------
     # BUILD LLM CONTEXT
     # --------------------------------------------------

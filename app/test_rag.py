@@ -165,3 +165,70 @@ def test_previous_page_context_is_cited(monkeypatch):
     assert evidence[1]["page"] == 7
     assert "[E1]" in answer
     assert "[E2]" in answer
+
+def test_adjacent_context_does_not_duplicate_retrieved_evidence(monkeypatch):
+    page_8_text = (
+        "Advantages: It allows simultaneous usage of the same "
+        "channel by multiple users."
+    )
+
+    retrieved_documents = [
+        {
+            "source": "Switching.pdf",
+            "page": 8,
+            "text": page_8_text,
+            "relevance": 0.90,
+            "distance": 0.10,
+        },
+        {
+            "source": "Switching.pdf",
+            "page": 9,
+            "text": "It also supports different packet transmission techniques.",
+            "relevance": 0.80,
+            "distance": 0.20,
+        },
+    ]
+
+    class MockCollection:
+        def get(self, **kwargs):
+            filters = kwargs.get("where", {}).get("$and", [])
+
+            if any(item.get("page") == 8 for item in filters):
+                return {
+                    "documents": [page_8_text],
+                    "metadatas": [
+                        {"source": "Switching.pdf", "page": 8}
+                    ],
+                }
+
+            return {
+                "documents": [],
+                "metadatas": [],
+            }
+
+    monkeypatch.setattr(
+        rag_pipeline, "get_collection",
+        lambda: MockCollection()
+    )
+    monkeypatch.setattr(
+        rag_pipeline, "retrieve_documents",
+        lambda *args, **kwargs: retrieved_documents
+    )
+    monkeypatch.setattr(
+        rag_pipeline, "generate_answer",
+        lambda query, context: "Packet switching has several advantages."
+    )
+
+    answer, evidence = rag_pipeline.run_rag(
+        "What are the advantages of packet switching?",
+        document_id="Switching.pdf",
+    )
+
+    page_8_evidence = [
+        item for item in evidence
+        if item["page"] == 8
+    ]
+
+    assert len(page_8_evidence) == 1
+    assert len(evidence) == 2
+    assert evidence[0]["context_for"] == ["E2"]
