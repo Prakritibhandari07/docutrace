@@ -1,4 +1,4 @@
-﻿import re
+import re
 import requests
 
 from app.retriever import (
@@ -433,6 +433,24 @@ def detect_contradictions(query: str, evidence: list):
     }) < 2:
         return ""
 
+    def extract_claim_years(text):
+        publication_patterns = (
+            r"\bpublished\s+(?:in|on)\s+",
+            r"\breport\s+(?:was\s+)?published\s+(?:in|on)\s+",
+        )
+
+        for pattern in publication_patterns:
+            text = re.sub(
+                pattern + r"(?:19|20)\d{2}\b",
+                "",
+                text,
+                flags=re.I,
+            )
+
+        return set(
+            re.findall(r"\b(?:19|20)\d{2}\b", text)
+        )
+
     context = build_comparison_context(cross_document_evidence)
 
     valid_ids = {
@@ -450,7 +468,14 @@ Evidence:
 
 Identify only genuine factual contradictions between different documents.
 A contradiction means two sources make incompatible claims about the
-same subject and attribute.
+same subject, attribute, timeframe, and conditions.
+
+Before reporting a contradiction:
+- Check whether both claims refer to the same reporting period.
+- Check whether they describe the same conditions or circumstances.
+- Different values from different years are not contradictions
+  unless both sources explicitly refer to the same period.
+- If the timeframe or conditions differ, do not report a contradiction.
 
 Rules:
 - Do not confuse different perspectives or complementary facts with
@@ -524,7 +549,31 @@ Rules:
         ]
 
         for block in finding_blocks:
-            # Ignore standalone Markdown headings.
+            block_ids = set(
+                re.findall(r"\[(E\d+)\]", block)
+            )
+
+            cited_items = [
+                item for item in cross_document_evidence
+                if item["id"] in block_ids
+            ]
+            claim_years = [
+                extract_claim_years(item["text"])
+                for item in cited_items
+            ]
+
+            explicit_years = [
+                years for years in claim_years if years
+            ]
+
+            if len(explicit_years) >= 2:
+                shared_years = set.intersection(*explicit_years)
+
+                if not shared_years:
+                    return ""
+
+
+        # Ignore standalone Markdown headings.
             block = re.sub(
                 r"(?m)^\s*#{1,6}\s+.*$",
                 "",

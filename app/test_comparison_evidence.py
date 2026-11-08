@@ -130,6 +130,51 @@ def test_detect_contradictions_rejects_single_document_evidence():
 
     assert result == ""
 
+def test_detect_contradictions_rejects_claims_from_different_years(
+    monkeypatch,
+):
+    evidence = [
+        {
+            "id": "E1",
+            "document_id": "Document A.pdf",
+            "document": "Document A.pdf",
+            "page": 2,
+            "text": "The population was 1 million in 2020.",
+        },
+        {
+            "id": "E2",
+            "document_id": "Document B.pdf",
+            "document": "Document B.pdf",
+            "page": 4,
+            "text": "The population was 1.2 million in 2024.",
+        },
+    ]
+
+    class MockResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {
+                "response": (
+                    "The population figures conflict: "
+                    "1 million [E1] versus 1.2 million [E2]."
+                )
+            }
+
+    monkeypatch.setattr(
+        cross_document_comparator.requests,
+        "post",
+        lambda *args, **kwargs: MockResponse(),
+    )
+
+    result = cross_document_comparator.detect_contradictions(
+        "Compare population figures",
+        evidence,
+    )
+
+    assert result == ""
+
 
 def test_detect_contradictions_rejects_invalid_citations(monkeypatch):
     evidence = [
@@ -370,3 +415,103 @@ def test_detect_contradictions_rejects_uncited_sentence(
     )
 
     assert result == ""
+
+def test_detect_contradictions_accepts_conflict_about_same_period(
+    monkeypatch,
+):
+    evidence = [
+        {
+            "id": "E1",
+            "document_id": "Document A.pdf",
+            "document": "Document A.pdf",
+            "page": 2,
+            "text": "The population in 2020 was 1 million.",
+        },
+        {
+            "id": "E2",
+            "document_id": "Document B.pdf",
+            "document": "Document B.pdf",
+            "page": 4,
+            "text": "The population in 2020 was 1.2 million.",
+        },
+    ]
+
+    class MockResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {
+                "response": (
+                    "The reported 2020 population differs: "
+                    "1 million [E1] versus 1.2 million [E2]."
+                )
+            }
+
+    monkeypatch.setattr(
+        cross_document_comparator.requests,
+        "post",
+        lambda *args, **kwargs: MockResponse(),
+    )
+
+    result = cross_document_comparator.detect_contradictions(
+        "Compare 2020 population figures",
+        evidence,
+    )
+
+    assert result
+    assert "[E1]" in result
+    assert "[E2]" in result
+
+def test_detect_contradictions_accepts_same_census_period_with_different_publication_years(
+    monkeypatch,
+):
+    evidence = [
+        {
+            "id": "E1",
+            "document_id": "Document A.pdf",
+            "document": "Document A.pdf",
+            "page": 2,
+            "text": (
+                "The 2020 census counted 1 million residents. "
+                "This report was published in 2021."
+            ),
+        },
+        {
+            "id": "E2",
+            "document_id": "Document B.pdf",
+            "document": "Document B.pdf",
+            "page": 4,
+            "text": (
+                "The 2020 census counted 1.2 million residents. "
+                "This report was published in 2022."
+            ),
+        },
+    ]
+
+    class MockResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {
+                "response": (
+                    "The 2020 census population figures conflict: "
+                    "1 million [E1] versus 1.2 million [E2]."
+                )
+            }
+
+    monkeypatch.setattr(
+        cross_document_comparator.requests,
+        "post",
+        lambda *args, **kwargs: MockResponse(),
+    )
+
+    result = cross_document_comparator.detect_contradictions(
+        "Compare 2020 census population figures",
+        evidence,
+    )
+
+    assert result
+    assert "[E1]" in result
+    assert "[E2]" in result
