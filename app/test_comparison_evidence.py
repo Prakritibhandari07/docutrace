@@ -213,3 +213,69 @@ def test_detect_contradictions_rejects_complementary_facts(monkeypatch):
     )
 
     assert result == "No clear contradictions were identified."
+
+def test_generate_comparison_retries_when_one_sentence_is_uncited(
+    monkeypatch,
+):
+    evidence = [
+        {"id": "E1", "text": "The OSI model has seven layers."},
+        {"id": "E2", "text": "TCP/IP has four layers."},
+    ]
+
+    responses = iter([
+        "The OSI model has seven layers [E1]. TCP/IP has four layers.",
+        "The OSI model has seven layers [E1]. TCP/IP has four layers [E2].",
+    ])
+
+    monkeypatch.setattr(
+        cross_document_comparator.requests,
+        "post",
+        lambda *args, **kwargs: type(
+            "Response",
+            (),
+            {
+                "raise_for_status": lambda self: None,
+                "json": lambda self: {"response": next(responses)},
+            },
+        )(),
+    )
+
+    result = cross_document_comparator.generate_comparison(
+        "Compare OSI and TCP/IP",
+        "Evidence context",
+        evidence,
+    )
+
+    assert "[E1]" in result
+    assert "[E2]" in result
+    assert "TCP/IP has four layers [E2]" in result
+
+
+def test_generate_comparison_rejects_uncited_sentence_after_retry(
+    monkeypatch,
+):
+    responses = iter([
+        "The OSI model has seven layers [E1]. Unsupported claim.",
+        "The OSI model has seven layers [E1]. Still unsupported.",
+    ])
+
+    monkeypatch.setattr(
+        cross_document_comparator.requests,
+        "post",
+        lambda *args, **kwargs: type(
+            "Response",
+            (),
+            {
+                "raise_for_status": lambda self: None,
+                "json": lambda self: {"response": next(responses)},
+            },
+        )(),
+    )
+
+    result = cross_document_comparator.generate_comparison(
+        "Compare the models",
+        "Evidence context",
+        [{"id": "E1", "text": "The OSI model has seven layers."}],
+    )
+
+    assert "sentence-level citations" in result

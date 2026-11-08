@@ -339,6 +339,19 @@ Return the answer with citations included in the text.
         found = re.findall(r"\[(E\d+)\]", text)
         return [citation for citation in found if citation in valid_ids]
 
+    def every_sentence_has_valid_citation(text):
+        sentences = [
+            sentence.strip()
+            for sentence in re.split(r"(?<=[.!?])\s+", text.strip())
+            if sentence.strip()
+        ]
+
+        return bool(sentences) and all(
+            extract_valid_citations(sentence)
+            for sentence in sentences
+        )
+
+
     try:
         result = call_ollama(prompt, num_predict)
 
@@ -349,7 +362,7 @@ Return the answer with citations included in the text.
             )
 
         # If the model ignored citations, retry with a stricter instruction.
-        if not extract_valid_citations(result):
+        if not every_sentence_has_valid_citation(result):
             retry_prompt = f"""
 Answer this question using only the evidence below:
 {query}
@@ -368,7 +381,7 @@ Output only the answer.
 """
             retry_result = call_ollama(retry_prompt, num_predict)
 
-            if retry_result and extract_valid_citations(retry_result):
+            if retry_result and every_sentence_has_valid_citation(retry_result):
                 result = retry_result
 
         # Remove malformed or unknown citations, retaining valid ones.
@@ -385,11 +398,11 @@ Output only the answer.
         result = re.sub(r"\n{3,}", "\n\n", result).strip()
 
         # Do not silently present a completely uncited answer as verified.
-        if not extract_valid_citations(result):
+        if not every_sentence_has_valid_citation(result):
             return (
-                "The model generated an answer but did not provide valid "
-                "citations. Please retry the question; the retrieved "
-                "evidence is still available below."
+                "The model generated an answer with missing or invalid "
+                "sentence-level citations. Please retry the question; "
+                "the retrieved evidence is still available below."
             )
 
         return result
