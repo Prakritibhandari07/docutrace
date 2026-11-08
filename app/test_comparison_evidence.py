@@ -324,3 +324,49 @@ def test_detect_contradictions_rejects_numbered_unsupported_findings(
     )
 
     assert result == ""
+
+def test_detect_contradictions_rejects_uncited_sentence(
+    monkeypatch,
+):
+    evidence = [
+        {
+            "id": "E1",
+            "document_id": "Document A.pdf",
+            "document": "Document A.pdf",
+            "page": 2,
+            "text": "The OSI model has seven layers.",
+        },
+        {
+            "id": "E2",
+            "document_id": "Document B.pdf",
+            "document": "Document B.pdf",
+            "page": 4,
+            "text": "The OSI model has five layers.",
+        },
+    ]
+
+    class MockResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {
+                "response": (
+                    "Document A reports seven layers [E1], "
+                    "while Document B reports five layers [E2]. "
+                    "The TCP/IP model has six layers."
+                )
+            }
+
+    monkeypatch.setattr(
+        cross_document_comparator.requests,
+        "post",
+        lambda *args, **kwargs: MockResponse(),
+    )
+
+    result = cross_document_comparator.detect_contradictions(
+        "Compare OSI layer counts",
+        evidence,
+    )
+
+    assert result == ""

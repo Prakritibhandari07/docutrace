@@ -534,6 +534,26 @@ Rules:
             if not block:
                 continue
 
+            sentences = [
+                sentence.strip()
+                for sentence in re.split(
+                    r"(?<=[.!?])\s+",
+                    block,
+                )
+                if sentence.strip()
+            ]
+
+            for sentence in sentences:
+                sentence_ids = set(
+                    re.findall(r"\[(E\d+)\]", sentence)
+                )
+
+                if (
+                    not sentence_ids
+                    or not sentence_ids.issubset(valid_ids)
+                ):
+                    return ""
+
             block_ids = set(re.findall(r"\[(E\d+)\]", block))
 
             block_documents = {
