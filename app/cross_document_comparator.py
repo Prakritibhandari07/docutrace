@@ -512,9 +512,14 @@ Rules:
         if not cited_ids or not cited_ids.issubset(valid_ids):
             return ""
 
+        finding_blocks = re.split(
+            r"\n\s*(?=(?:\d+[.)]|[-*])\s+)",
+            result.strip(),
+        )
+
         finding_blocks = [
             block.strip()
-            for block in re.split(r"\n\s*\n", result.strip())
+            for block in finding_blocks
             if block.strip()
         ]
 
