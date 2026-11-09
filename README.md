@@ -28,55 +28,6 @@ Built with Python and Streamlit, DocuTrace uses Retrieval-Augmented Generation (
 | PyPDF | PDF text extraction |
 | pytest | Automated testing |
 
-## System Architecture
-
-```text
-              PDF Documents
-                    |
-                    v
-             Document Loader
-                    |
-                    v
-          Text Extraction & Cleaning
-                    |
-                    v
-             Text Chunking
-                    |
-                    v
-          Sentence Transformers
-                    |
-                    v
-             ChromaDB Index
-                    |
-                    v
-           Semantic Retrieval
-                    |
-                    v
-              RAG Pipeline
-                    |
-                    v
-              Ollama LLM
-                    |
-                    v
-          Generated Answer
-                    |
-                    v
-       Evidence & Page Citations
-                    |
-                    v
-          Evidence Verification
-```
-
-## How It Works
-
-1. **Document ingestion:** PDF files are uploaded and their text is extracted.
-2. **Text preprocessing:** Extracted content is cleaned and divided into smaller chunks while preserving page information.
-3. **Embedding generation:** Sentence Transformers converts text chunks into vector embeddings.
-4. **Vector indexing:** Chunks and their metadata are stored in ChromaDB.
-5. **Semantic retrieval:** Relevant passages are retrieved based on the user's question.
-6. **Answer generation:** The retrieved context is passed to an Ollama language model to generate an answer.
-7. **Evidence verification:** Generated claims are checked against supporting document passages.
-8. **Citation presentation:** Users can inspect supporting evidence and its corresponding document pages.
 
 ## Installation and Setup
 
@@ -197,19 +148,6 @@ flowchart TD
     class ANSWER,DISPLAY,VERIFY,RESULT,COMPOUT output
 ```
 
-## Technical Stack
-
-| Category | Technology | Purpose |
-|---|---|---|
-| Programming Language | Python | Core application logic |
-| Frontend | Streamlit | Interactive web interface |
-| PDF Processing | pypdf | PDF text extraction |
-| Text Chunking | LangChain Text Splitters | Recursive document chunking |
-| Vector Database | ChromaDB | Persistent document indexing and retrieval |
-| LLM Runtime | Ollama | Local language model execution |
-| Language Model | Qwen 2.5 3B | Context-based answer generation |
-| HTTP Client | Requests | Communication with local LLM services |
-| Testing | pytest | Automated application testing |
 
 ### Engineering Decisions
 
@@ -237,7 +175,7 @@ Run the automated test suite from the project root:
 python -m pytest app -q
 ```
 
-The current test suite has **60 passing tests and 2 skipped tests**. The skipped tests are optional Ollama integration tests.
+The current test suite has **75 passing tests and 2 skipped tests**. The skipped tests are optional Ollama integration tests.
 
 ## Design Goals
 
