@@ -1,15 +1,6 @@
-import requests
 import re
 
-
-# ================================================
-# Ollama configuration
-# ================================================
-
-OLLAMA_URL = "http://localhost:11434/api/generate"
-
-MODEL_NAME = "qwen2.5:3b"
-
+from app.llm_client import generate_text
 
 # ================================================
 # Ask Ollama
@@ -20,29 +11,12 @@ def ask_ollama(
     timeout: int = 120
 ) -> str:
 
-    response = requests.post(
-        OLLAMA_URL,
-        json={
-            "model": MODEL_NAME,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": 0.2,
-                "num_predict": 400
-            }
-        },
-        timeout=timeout
+    return generate_text(
+        prompt=prompt,
+        temperature=0.2,
+        max_tokens=400,
+        timeout=timeout,
     )
-
-    response.raise_for_status()
-
-    result = response.json()
-
-    return result.get(
-        "response",
-        ""
-    ).strip()
-
 
 # ================================================
 # Create manageable document sections

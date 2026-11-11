@@ -1,9 +1,7 @@
 import requests
 import re
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "qwen2.5:3b"
-
+from app.llm_client import generate_text
 
 def clean_answer(answer):
     """
@@ -144,35 +142,18 @@ USER QUESTION:
 Write the answer now.
 """
 
-    payload = {
-        "model": MODEL_NAME,
-        "prompt": prompt,
-        "stream": False,
-        "options": {
-            "temperature": 0.0,
-            "num_predict": 500,
-        },
-    }
-
     try:
-        response = requests.post(
-            OLLAMA_URL,
-            json=payload,
+        raw_answer = generate_text(
+            prompt=prompt,
+            temperature=0.0,
+            max_tokens=500,
             timeout=180,
         )
 
-        response.raise_for_status()
-
-        result = response.json()
-
-        raw_answer = result.get("response", "")
-
-        print("\n========== OLLAMA DEBUG ==========")
-        print("MODEL:", MODEL_NAME)
+        print("\n========== LLM DEBUG ==========")
         print("RAW ANSWER LENGTH:", len(raw_answer))
-        print("DONE REASON:", result.get("done_reason"))
-        print("EVALUATED TOKENS:", result.get("eval_count"))
-        print("QUESTION SENT TO OLLAMA:", query)
+        print("MODEL: shared LLM client")
+        print("QUESTION SENT TO LLM:", query)
         print("PROMPT HAS TARGET RULE:", "better bandwidth usage through packets from multiple sources" in prompt)
         print("RAW ANSWER:", repr(raw_answer))
         print("RAW ANSWER END:", repr(raw_answer[-500:]))

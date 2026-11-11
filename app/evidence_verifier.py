@@ -2,10 +2,7 @@ import re
 import requests
 import traceback
 
-
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "qwen2.5:3b"
-
+from app.llm_client import generate_text
 
 # ============================================================
 # TEXT NORMALIZATION
@@ -278,22 +275,13 @@ Unsupported
 """
 
     try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": MODEL_NAME,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.0,
-                    "num_predict": 160,
-                },
-            },
+        raw_response = generate_text(
+            prompt=prompt,
+            temperature=0.0,
+            max_tokens=160,
             timeout=120,
         )
-
-        response.raise_for_status()
-        output = response.json().get("response", "").strip()
+        output = raw_response.strip()
 
     except Exception as exc:
         traceback.print_exc()

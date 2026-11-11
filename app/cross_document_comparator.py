@@ -1,5 +1,7 @@
-import re
+﻿import re
 import requests
+
+from app.llm_client import generate_text
 
 from app.retriever import (
     retrieve_documents,
@@ -11,10 +13,6 @@ from app.retriever import (
 # ============================================================
 # CONFIGURATION
 # ============================================================
-
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "qwen2.5:3b"
-
 
 # ============================================================
 # RETRIEVE EVIDENCE FROM EACH DOCUMENT
@@ -319,21 +317,12 @@ Return the answer with citations included in the text.
 """
 
     def call_ollama(current_prompt, limit):
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": MODEL_NAME,
-                "prompt": current_prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.0,
-                    "num_predict": limit,
-                },
-            },
+        return generate_text(
+            prompt=current_prompt,
+            temperature=0.0,
+            max_tokens=limit,
             timeout=180,
         )
-        response.raise_for_status()
-        return response.json().get("response", "").strip()
 
     def extract_valid_citations(text):
         found = re.findall(r"\[(E\d+)\]", text)
@@ -410,7 +399,8 @@ Output only the answer.
     except requests.exceptions.RequestException as exc:
         return (
             "Comparison generation failed. Check whether Ollama is running "
-            f"and the model '{MODEL_NAME}' is available. Details: {exc}"
+            "and the configured LLM provider is available. "
+            f"Details: {exc}"
         )
     except (ValueError, TypeError) as exc:
         return f"Could not process the comparison response: {exc}"
@@ -494,23 +484,12 @@ Rules:
 """
 
     try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": MODEL_NAME,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.0,
-                    "num_predict": 500,
-                },
-            },
+        result = generate_text(
+            prompt=prompt,
+            temperature=0.0,
+            max_tokens=500,
             timeout=180,
         )
-        response.raise_for_status()
-
-        result = response.json().get("response", "").strip()
-
         if not result:
             return ""
 
