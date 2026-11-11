@@ -272,15 +272,15 @@ def evidence_filter(documents):
         relevance = document.get("relevance", 0)
         overlap = document.get("keyword_overlap", 0)
 
-        # Strong relevance still needs at least one matching keyword.
-        if relevance >= 0.50 and overlap >= 2:
+        # Allow a single strong keyword match.
+        if relevance >= 0.50 and overlap >= 1:
             useful.append(document)
-        # Lower relevance needs stronger lexical support.
+
+        # Allow moderate relevance with stronger lexical support.
         elif relevance >= 0.45 and overlap >= 3:
             useful.append(document)
 
     return useful
-
 # --------------------------------------------------
 # SELECT BEST EVIDENCE
 # --------------------------------------------------
