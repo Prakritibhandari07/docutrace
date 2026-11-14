@@ -263,7 +263,9 @@ def remove_duplicates(documents):
 
 def evidence_filter(documents):
     """Keep passages with meaningful relevance and keyword overlap."""
+
     if not documents:
+        print("[Evidence Debug] No documents received!")
         return []
 
     useful = []
@@ -272,13 +274,27 @@ def evidence_filter(documents):
         relevance = document.get("relevance", 0)
         overlap = document.get("keyword_overlap", 0)
 
-        # Allow a single strong keyword match.
-        if relevance >= 0.50 and overlap >= 1:
+        accepted = (
+            (relevance >= 0.50 and overlap >= 1)
+            or
+            (relevance >= 0.45 and overlap >= 3)
+        )
+
+        print(
+            f"[Evidence Debug] "
+            f"Page: {document.get('page')} | "
+            f"Relevance: {relevance} | "
+            f"Overlap: {overlap} | "
+            f"Accepted: {accepted}"
+        )
+
+        if accepted:
             useful.append(document)
 
-        # Allow moderate relevance with stronger lexical support.
-        elif relevance >= 0.45 and overlap >= 3:
-            useful.append(document)
+    print(
+        f"[Evidence Debug] "
+        f"Accepted {len(useful)} out of {len(documents)} passages"
+    )
 
     return useful
 # --------------------------------------------------
