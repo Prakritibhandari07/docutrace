@@ -51,13 +51,13 @@ def generate_text(
         return response.json().get("response", "").strip()
 
     if provider == "openrouter":
-        api_key = os.getenv("OPENROUTER_API_KEY")
+        api_key = get_config("OPENROUTER_API_KEY")
 
         if not api_key:
             raise ValueError("OPENROUTER_API_KEY is not configured.")
 
         payload = {
-            "model": os.getenv("OPENROUTER_MODEL", "openrouter/free"),
+            "model": get_config("OPENROUTER_MODEL", "openrouter/free"),
             "messages": [{"role": "user", "content": prompt}],
             "temperature": temperature,
             "max_tokens": max_tokens,
