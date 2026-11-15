@@ -419,6 +419,23 @@ def retrieve_documents(
             })
 
     if not all_documents:
+        print("[Retrieval Debug] No documents retrieved!")
+        print("[Retrieval Debug] Query:", query)
+        print("[Retrieval Debug] Selected documents:", selected_documents)
+
+        try:
+            print(
+                "[Retrieval Debug] Collection document count:",
+                collection.count()
+            )
+            sample = collection.peek()
+            print(
+                "[Retrieval Debug] Sample metadata:",
+                sample.get("metadatas")
+            )
+        except Exception as e:
+            print("[Retrieval Debug] Collection inspection error:", e)
+
         return []
 
     all_documents = remove_duplicates(all_documents)
