@@ -1,6 +1,17 @@
 import os
 import requests
+import streamlit as st
 
+def get_config(name, default=None):
+    value = os.getenv(name)
+
+    if value:
+        return value
+
+    try:
+        return st.secrets.get(name, default)
+    except Exception:
+        return default
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 OLLAMA_MODEL = "qwen2.5:3b"
@@ -16,9 +27,9 @@ def generate_text(
     Generate text using local Ollama or hosted OpenRouter.
     Local Ollama remains the default.
     """
-
-    provider = os.getenv("LLM_PROVIDER", "ollama").lower()
-
+    
+    provider = get_config("LLM_PROVIDER", "ollama").lower()
+    
     if provider == "ollama":
         payload = {
             "model": OLLAMA_MODEL,
