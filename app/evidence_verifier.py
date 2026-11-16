@@ -512,7 +512,11 @@ def verify_answer(answer, evidence):
         )
 
         result["claim"] = claim
-        result["evidence_ids"] = evidence_ids
+
+        # Keep only the evidence IDs that verify_claim
+        # determined actually support the claim.
+        if "evidence_ids" not in result:
+            result["evidence_ids"] = evidence_ids
 
         verification_results.append(result)
 
