@@ -329,42 +329,43 @@ Unsupported
         "reason": reason,
     }
 
-def build_evidence_reason(claim, evidence_items):
-    """Build a reason using the actual cited evidence."""
 
-    claim_words = set(normalize_text(claim).split())
+def build_evidence_reason(claim, evidence_items):
+    """Build a reason from the strongest matching evidence passage."""
+
+    ignored_words = {
+        "the", "a", "an", "is", "are", "was", "were",
+        "of", "to", "and", "or", "in", "on", "for",
+        "that", "this", "it", "as", "by", "with",
+        "its", "their", "which", "what", "can", "be"
+    }
+
+    claim_words = set(
+        re.findall(r"\b[a-zA-Z0-9]+\b", normalize_text(claim))
+    ) - ignored_words
+
+    if not claim_words:
+        return "The claim could not be meaningfully compared with the evidence."
+
     best_sentence = ""
-    best_score = 0
+    best_score = 0.0
 
     for item in evidence_items:
         text = str(item.get("text", ""))
-
-        # Split the passage into sentences.
         sentences = re.split(r"(?<=[.!?])\s+", text)
 
         for sentence in sentences:
-            normalized_sentence = normalize_text(sentence)
-            sentence_words = set(normalized_sentence.split())
+            sentence_words = set(
+                re.findall(
+                    r"\b[a-zA-Z0-9]+\b",
+                    normalize_text(sentence)
+                )
+            ) - ignored_words
 
             if not sentence_words:
                 continue
 
-            # Ignore very common words when comparing meanings.
-            ignored_words = {
-                "the", "a", "an", "is", "are", "was", "were",
-                "of", "to", "and", "or", "in", "on", "for",
-                "that", "this", "it", "as", "by", "with"
-            }
-
-            meaningful_claim_words = claim_words - ignored_words
-            meaningful_sentence_words = sentence_words - ignored_words
-
-            if not meaningful_claim_words:
-                continue
-
-            score = len(
-                meaningful_claim_words & meaningful_sentence_words
-            ) / len(meaningful_claim_words)
+            score = len(claim_words & sentence_words) / len(claim_words)
 
             if score > best_score:
                 best_score = score
@@ -372,11 +373,14 @@ def build_evidence_reason(claim, evidence_items):
 
     if best_sentence and best_score >= 0.5:
         return (
-            f'The cited evidence states "{best_sentence}", '
-            f'which shares key details with the claim.'
+            f'The evidence states "{best_sentence}", '
+            f'which contains relevant details from the claim.'
         )
 
-    return "The cited passage does not clearly match the claim's wording."
+    return (
+        "The cited evidence does not provide a clear statement "
+        "supporting the claim."
+    )
 
 
 def verify_claim(claim, evidence_ids, evidence):
