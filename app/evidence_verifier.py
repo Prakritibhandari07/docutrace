@@ -282,6 +282,7 @@ Unsupported
             timeout=120,
         )
         output = raw_response.strip()
+        print("[Verification Debug] Raw model response:", repr(output))
 
     except Exception as exc:
         traceback.print_exc()
