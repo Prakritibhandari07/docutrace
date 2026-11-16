@@ -385,81 +385,115 @@ def build_evidence_reason(claim, evidence_items):
 
 def verify_claim(claim, evidence_ids, evidence):
     """
-    Verify a claim using its cited evidence and any adjacent-page
-    context explicitly linked to that evidence.
+    Verify each cited evidence passage independently.
+    Adjacent-page context is included only when explicitly linked
+    to that particular evidence ID.
     """
 
-    # Get the evidence directly cited by the claim.
-    claim_evidence = get_claim_evidence(
-        evidence_ids, evidence
-    )
-
-    if not claim_evidence:
+    if not evidence_ids:
         return {
             "status": "Unsupported",
-            "reason": "No matching evidence was found for the cited IDs."
+            "reason": "No evidence citations were provided.",
+            "evidence_ids": []
         }
 
-    # Include adjacent-page context linked to the cited evidence.
-    related_ids = set(evidence_ids)
+    results = []
 
-    for item in evidence:
-        context_for = item.get("context_for", [])
+    for evidence_id in evidence_ids:
 
-        if related_ids.intersection(context_for):
-            claim_evidence.append(item)
-
-    evidence_text = "\n".join(
-        str(item.get("text", ""))
-        for item in claim_evidence
-    )
-
-    normalized_claim = normalize_text(claim)
-    normalized_evidence = normalize_text(evidence_text)
-
-    if normalized_claim and normalized_claim in normalized_evidence:
-        return {
-            "status": "Supported",
-            "reason": "The cited evidence and its linked page context explicitly contain the claim's wording."
-        }
-
-    lexical_status = direct_support_check(
-        claim, evidence_text
-    )
-
-    if lexical_status == "Supported":
-        return {
-            "status": "Supported",
-            "reason": build_evidence_reason(
-                claim, claim_evidence
-            )
-        }
-
-    result = llm_verify_claim(
-        claim, claim_evidence
-    )
-
-    status = str(
-        result.get("status", "")
-    ).strip().lower()
-
-    if status == "supported":
-        result["status"] = "Supported"
-    elif status in {
-        "partially supported",
-        "partially_supported"
-    }:
-        result["status"] = "Partially Supported"
-    elif status == "unsupported":
-        result["status"] = "Unsupported"
-    else:
-        result["status"] = "Verification Error"
-    if not result.get("reason"):
-        result["reason"] = build_evidence_reason(
-            claim, claim_evidence
+        # Find only the passage matching this citation.
+        direct_evidence = get_claim_evidence(
+            [evidence_id], evidence
         )
 
-    return result
+        if not direct_evidence:
+            results.append({
+                "evidence_id": evidence_id,
+                "status": "Unsupported",
+                "reason": "No matching evidence was found."
+            })
+            continue
+
+        # Include only context explicitly linked to this citation.
+        citation_evidence = list(direct_evidence)
+
+        for item in evidence:
+            context_for = item.get("context_for", [])
+
+            if evidence_id in context_for and item not in citation_evidence:
+                citation_evidence.append(item)
+
+        # Ask the verifier to assess this citation independently.
+        result = llm_verify_claim(
+            claim, citation_evidence
+        )
+
+        status = str(
+            result.get("status", "")
+        ).strip().lower()
+
+        if status == "supported":
+            normalized_status = "Supported"
+        elif status in {
+            "partially supported",
+            "partially_supported"
+        }:
+            normalized_status = "Partially Supported"
+        elif status == "unsupported":
+            normalized_status = "Unsupported"
+        else:
+            normalized_status = "Verification Error"
+
+        results.append({
+            "evidence_id": evidence_id,
+            "status": normalized_status,
+            "reason": result.get(
+                "reason", "No explanation was provided."
+            )
+        })
+
+    # Keep only citations that independently support the claim.
+    supported_ids = [
+        item["evidence_id"]
+        for item in results
+        if item["status"] == "Supported"
+    ]
+
+    partial_ids = [
+        item["evidence_id"]
+        for item in results
+        if item["status"] == "Partially Supported"
+    ]
+
+    if supported_ids:
+        status = "Supported"
+        reason = "The claim is directly supported by: " + ", ".join(
+            supported_ids
+        ) + "."
+
+    elif partial_ids:
+        status = "Partially Supported"
+        reason = "The claim is partially supported by: " + ", ".join(
+            partial_ids
+        ) + "."
+
+    elif all(
+        item["status"] == "Unsupported"
+        for item in results
+    ):
+        status = "Unsupported"
+        reason = "None of the cited passages supports this claim."
+
+    else:
+        status = "Verification Error"
+        reason = "The evidence verifier could not reliably assess every citation."
+
+    return {
+        "status": status,
+        "reason": reason,
+        "evidence_ids": supported_ids + partial_ids,
+        "citation_results": results
+    }
 
 def verify_answer(answer, evidence):
     """Verify each claim in an answer against its cited evidence."""
