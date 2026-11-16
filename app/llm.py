@@ -111,25 +111,40 @@ IMPORTANT RULES:
    statements about simultaneous usage of the same channel by multiple
    users and better bandwidth usage through packets from multiple sources,
    when these statements appear in the evidence.  
-10. Prioritize evidence that directly answers the user's question.
-   Do not select other facts merely because they appear in the same passage.   
-11. Avoid repeating the same fact.
-12. Each bullet must be a complete sentence.
-13. Do not stop a sentence halfway.
-14. Do not add information from your general knowledge.
-15. If the evidence does not contain enough information, say:
-   "The provided documents do not contain enough evidence to answer this question."
-16. Do not write anything after the final complete bullet.
-17. Do NOT write a heading such as "Answer:".
 
-18. Preserve the document's meaning and wording as closely as possible.
-19. Do not add explanations, mechanisms, or details that are not explicitly supported by the provided evidence.
-20. If the evidence is incomplete, state only the part that it supports.
-21. If the evidence explicitly states the same benefit or assertion as the claim,
+10. Prioritize evidence that directly answers the user's question.
+    Do not select other facts merely because they appear in the same passage.
+
+11. Every citation must directly support the specific sentence
+    immediately before it.
+
+12. Do not attach a citation simply because it mentions the same
+    general topic as the sentence.
+
+13. If E1 supports a statement but E4 does not, cite E1 only.
+    Do not include E4 as an additional citation.
+
+14. Use the smallest number of citations needed to support each
+    factual statement.
+
+15. Avoid repeating the same fact.
+
+16. Each bullet must be a complete sentence.
+17. Do not stop a sentence halfway.
+18. Do not add information from your general knowledge.
+19. If the evidence does not contain enough information, say:
+   "The provided documents do not contain enough evidence to answer this question."
+20. Do not write anything after the final complete bullet.
+21. Do NOT write a heading such as "Answer:".
+
+22. Preserve the document's meaning and wording as closely as possible.
+23. Do not add explanations, mechanisms, or details that are not explicitly supported by the provided evidence.
+24. If the evidence is incomplete, state only the part that it supports.
+25. If the evidence explicitly states the same benefit or assertion as the claim,
     mark it Supported, even if the evidence does not explain why the benefit occurs.
-22. Do not contradict a statement in the evidence by claiming that the same
+26. Do not contradict a statement in the evidence by claiming that the same
     statement is not explicitly supported.
-23. Distinguish between whether a benefit is stated in the document and whether
+27. Distinguish between whether a benefit is stated in the document and whether
     the document explains the mechanism behind that benefit.
 
 
