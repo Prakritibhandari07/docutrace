@@ -226,7 +226,6 @@ def retrieve_from_document(
 
     return retrieved
 
-
 # --------------------------------------------------
 # REMOVE DUPLICATE CHUNKS
 # --------------------------------------------------
