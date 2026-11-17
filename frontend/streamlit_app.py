@@ -1321,6 +1321,22 @@ def display_evidence_verification(
 
 
             )
+        
+        # Show the result for each citation separately
+        citation_results = result.get("citation_results", [])
+
+        for citation in citation_results:
+            citation_id = citation.get("evidence_id", "Unknown")
+            citation_status = citation.get("status", "Unknown")
+            citation_reason = citation.get("reason", "")
+
+            st.write(
+                f"**{citation_id}: {citation_status}**"
+            )
+
+            if citation_reason:
+                st.caption(citation_reason)
+
 
 
 
