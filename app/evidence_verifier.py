@@ -216,6 +216,7 @@ def direct_support_check(claim, evidence_text):
 
 
 def llm_verify_claim(claim, evidence_items):
+    print("NEW VERIFIER FUNCTION IS RUNNING")
     """
     Verify one claim against its explicitly cited evidence.
     Parse the model's status and reason robustly.
@@ -278,6 +279,12 @@ Unsupported
 
         output = str(raw_response or "").strip()
         print("[Verification Debug] Raw model response:", repr(output))
+
+        if not output:
+            return {
+                "status": "Verification Error",
+                "reason": "The model returned an empty response.",
+             }
 
     except Exception as exc:
         traceback.print_exc()
