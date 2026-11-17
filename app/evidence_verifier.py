@@ -144,6 +144,7 @@ def get_claim_evidence(evidence_ids, evidence):
         if item.get("id")
     }
 
+
     selected = []
 
     for evidence_id in evidence_ids:
