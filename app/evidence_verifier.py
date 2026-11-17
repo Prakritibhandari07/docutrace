@@ -298,11 +298,51 @@ Unsupported
         re.IGNORECASE,
     )
 
+    
+    # More flexible response parsing
+    normalized_output = output.strip().lower()
+
+    status_match = re.search(
+        r"\b(partially\s+supported|unsupported|supported)\b",
+        normalized_output,
+    )
+
+    if not status_match:
+        return {
+            "status": "Verification Error",
+            "reason": f"Unrecognized model response: {output[:300]}",
+        }
+
+    raw_status = re.sub(
+        r"\s+",
+        " ",
+        status_match.group(1)
+    )
+
+    if raw_status == "supported":
+        status = "Supported"
+    elif raw_status == "partially supported":
+        status = "Partially Supported"
+    else:
+        status = "Unsupported"
+
     reason_match = re.search(
         r"REASON\s*:\s*(.*)",
         output,
         re.IGNORECASE | re.DOTALL,
     )
+
+    reason = (
+        reason_match.group(1).strip()
+        if reason_match and reason_match.group(1).strip()
+        else "The model did not provide a verification reason."
+    )
+
+    return {
+        "status": status,
+        "reason": reason,
+    }
+
 
     if not status_match:
         return {
