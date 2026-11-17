@@ -477,6 +477,10 @@ def verify_claim(claim, evidence_ids, evidence):
         else:
             # Check lexical overlap independently for this citation.
             lexical_status = direct_support_check(claim, evidence_text)
+            print("CLAIM:", claim)
+            print("EVIDENCE ID:", evidence_id)
+            print("LEXICAL STATUS:", lexical_status)
+            print("EVIDENCE TEXT:", evidence_text[:500])
 
             if lexical_status == "Supported":
                 status = "Supported"
