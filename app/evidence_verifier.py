@@ -477,6 +477,7 @@ def verify_claim(claim, evidence_ids, evidence):
         else:
             # Check lexical overlap independently for this citation.
             lexical_status = direct_support_check(claim, evidence_text)
+            reason = f"DEBUG: lexical_status={lexical_status}"
             print("CLAIM:", claim)
             print("EVIDENCE ID:", evidence_id)
             print("LEXICAL STATUS:", lexical_status)
@@ -495,41 +496,10 @@ def verify_claim(claim, evidence_ids, evidence):
                     "The cited passage does not contain enough of the "
                     "important terms and details of the claim."
                 )
-
             else:
-                # Use the LLM only when lexical matching is inconclusive.
-                try:
-                    llm_result = llm_verify_claim(
-                        claim,
-                        claim_evidence
-                    )
-                    status = llm_result.get(
-                        "status",
-                        "Verification Error"
-                    )
-                    reason = llm_result.get(
-                        "reason",
-                        "No verification reason was provided."
-                    )
-
-                    if status not in {
-                        "Supported",
-                        "Partially Supported",
-                        "Unsupported",
-                    }:
-                        status = "Partially Supported"
-                        reason = (
-                            "The evidence has some matching details, "
-                            "but semantic verification was inconclusive."
-                        )
-
-                except Exception:
-                    status = "Partially Supported"
-                    reason = (
-                        "The evidence has some matching details, "
-                        "but the language model could not complete verification."
-                    )
-
+                status = "Partially Supported"
+                reason = f"DEBUG: lexical check was inconclusive ({lexical_status})."
+            
         if status == "Supported":
             supported_ids.append(evidence_id)
         elif status == "Partially Supported":
