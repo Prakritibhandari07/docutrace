@@ -215,7 +215,6 @@ def direct_support_check(claim, evidence_text):
 # ============================================================
 
 
-
 def llm_verify_claim(claim, evidence_items):
     """
     Verify one claim against its explicitly cited evidence.
@@ -341,6 +340,12 @@ Unsupported
         "status": status,
         "reason": reason,
     }
+
+
+
+
+ 
+   
 
 
 def build_evidence_reason(claim, evidence_items):
