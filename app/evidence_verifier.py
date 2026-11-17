@@ -203,12 +203,10 @@ def direct_support_check(claim, evidence_text):
 
     overlap_ratio = len(matched_words) / len(meaningful_words)
 
-    if overlap_ratio >= 0.80:
+    if overlap_ratio >= 0.60:
         return "Supported"
-
-    if overlap_ratio >= 0.50:
+    if overlap_ratio >= 0.35:
         return "Partially Supported"
-
     return "Unsupported"
 
 
