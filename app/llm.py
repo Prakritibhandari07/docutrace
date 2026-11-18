@@ -112,26 +112,27 @@ IMPORTANT RULES:
    users and better bandwidth usage through packets from multiple sources,
    when these statements appear in the evidence.  
 
+
 10. Evaluate each evidence passage independently before using it.
 
-11. For every factual sentence, identify which evidence passage
-    directly establishes that specific statement.
+11. Every factual sentence must be supported by at least one
+    directly relevant evidence passage.
 
-12. Include an evidence ID only if its passage directly supports
-    the complete factual sentence.
+12. Cite only the evidence IDs that directly support that
+    particular sentence.
 
-13. Do not cite evidence merely because it discusses the same
-    general subject or contains similar keywords.
+13. Never cite a passage simply because it discusses the
+    same general topic.
 
-14. If a passage is irrelevant, contradictory, or does not establish
-    the statement, exclude its evidence ID from the citation.
+14. Do not include unrelated evidence IDs.
 
-15. Use the smallest number of citations needed for each sentence.
+15. Put citations immediately after each complete sentence.
 
-16. Put citations immediately after the sentence they support.
-    Never combine citations for unrelated sentences.
+16. Never append a list of all retrieved evidence IDs
+    to the end of the answer.
 
-17. Never put all evidence IDs at the end of the entire answer.
+17. If one passage supports the sentence, use only that
+    passage's citation.
 
 15. Avoid repeating the same fact.
 
