@@ -153,6 +153,27 @@ IMPORTANT RULES:
 27. Distinguish between whether a benefit is stated in the document and whether
     the document explains the mechanism behind that benefit.
 
+CITATION EXAMPLE:
+
+Evidence:
+[E1] A performance measure is a subjective measure used to
+characterize how successful an agent is.
+
+[E4] A list of introductory topics including intelligent agents
+and agent behaviour.
+
+Question:
+What is an agent's performance measure?
+
+Correct answer:
+An agent's performance measure is a subjective measure used to
+characterize how successful an agent is. [E1]
+
+Incorrect answer:
+An agent's performance measure is a subjective measure used to
+characterize how successful an agent is. [E1] [E4]
+
+Do not cite E4 because it does not establish the definition.
 
 EVIDENCE:
 {context}
