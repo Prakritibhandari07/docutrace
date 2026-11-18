@@ -462,7 +462,10 @@ def verify_claim(claim, evidence_ids, evidence):
         else:
             # Check lexical overlap independently for this citation.
             lexical_status = direct_support_check(claim, evidence_text)
-           
+            print("[Verifier Debug] Claim:", claim)
+            print("[Verifier Debug] Evidence ID:", evidence_id)
+            print("[Verifier Debug] Lexical status:", lexical_status)
+            print("[Verifier Debug] Evidence text:", repr(evidence_text[:500]))
             print("CLAIM:", claim)
             print("EVIDENCE ID:", evidence_id)
             print("LEXICAL STATUS:", lexical_status)
@@ -488,6 +491,7 @@ def verify_claim(claim, evidence_ids, evidence):
                         claim,
                         claim_evidence
                     )
+                    print("[Verifier Debug] LLM fallback triggered for:", evidence_id)
 
                     status = llm_result.get(
                         "status",
