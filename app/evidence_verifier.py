@@ -216,136 +216,83 @@ def direct_support_check(claim, evidence_text):
 # ============================================================
 
 
+
 def llm_verify_claim(claim, evidence_items):
-    print("NEW VERIFIER FUNCTION IS RUNNING")
-    """
-    Verify one claim against its explicitly cited evidence.
-    Parse the model's status and reason robustly.
-    """
+    """Verify one claim against its explicitly cited evidence."""
+
     evidence_parts = []
 
     for item in evidence_items:
         evidence_parts.append(
-            f"""
-[{item.get('id', 'UNKNOWN')}]
-Document: {item.get('document', 'Unknown document')}
-Page: {item.get('page', 'Unknown page')}
-
-PASSAGE:
-{item.get('text', '')}
-"""
+            f"[{item.get('id', 'UNKNOWN')}]\n"
+            f"{item.get('text', '')}"
         )
 
-    context = "\n".join(evidence_parts)
+    context = "\n\n".join(evidence_parts)
 
     prompt = f"""
-You are a strict document evidence verification system.
-
-Verify exactly ONE claim against the supplied evidence.
+You are a strict document evidence verifier.
 
 CLAIM:
 {claim}
 
-DOCUMENT EVIDENCE:
+EVIDENCE:
 {context}
 
-Rules:
-1. Use only the supplied evidence.
-2. A direct statement or faithful paraphrase counts as support.
-3. Check important details, quantities, and conditions.
-4. Supported means all important parts are supported.
-5. Partially Supported means only some meaningful parts are supported.
-6. Unsupported means the main assertion is not established.
-7. Give a specific reason based on the evidence.
+Decide whether the evidence supports the complete claim.
 
-Return exactly:
-
-STATUS: Supported
-
-REASON: Explain which evidence supports or fails to support the claim.
-
-Choose only one status:
+Return exactly ONE of these three labels, with no explanation:
 Supported
 Partially Supported
 Unsupported
+
+Supported = all important parts are supported.
+Partially Supported = some important parts are supported.
+Unsupported = the main assertion is not established.
 """
 
     try:
-        raw_response = generate_text(
+        output = generate_text(
             prompt=prompt,
             temperature=0.0,
-            max_tokens=300,
+            max_tokens=30,
             timeout=120,
         )
 
-        output = str(raw_response or "").strip()
+        output = str(output or "").strip()
         print("[Verification Debug] Raw model response:", repr(output))
 
-        if not output:
+        match = re.search(
+            r"\b(Partially\s+Supported|Unsupported|Supported)\b",
+            output,
+            re.IGNORECASE,
+        )
+
+        if not match:
             return {
                 "status": "Verification Error",
-                "reason": "The model returned an empty response.",
-             }
+                "reason": "Unrecognized verifier response: " + repr(output[:250]),
+            }
+
+        normalized = re.sub(r"\s+", " ", match.group(1)).lower()
+
+        if normalized == "supported":
+            status = "Supported"
+        elif normalized == "partially supported":
+            status = "Partially Supported"
+        else:
+            status = "Unsupported"
+
+        return {
+            "status": status,
+            "reason": "The evidence was evaluated against the claim.",
+        }
 
     except Exception as exc:
-        traceback.print_exc()
         return {
             "status": "Verification Error",
             "reason": f"Verification failed: {exc}",
         }
-
-    
-    # Normalize common Markdown formatting before parsing.
-    cleaned_output = output.replace("**", "").replace("__", "").strip()
-
-    # Accept STATUS: Supported, STATUS - Supported,
-    # or a standalone status line.
-    status_match = re.search(
-        r"^\s*(?:STATUS\s*[:\-]\s*)?"
-        r"(Partially\s+Supported|Unsupported|Supported)\s*[.!]?\s*$",
-        cleaned_output,
-        re.IGNORECASE | re.MULTILINE,
-    )
-
-    if not status_match:
-        return {
-            "status": "Verification Error",
-            "reason": "RAW VERIFIER RESPONSE: " + repr(output[:500]),
-               
-        }
-
-    raw_status = re.sub(
-        r"\s+",
-        " ",
-        status_match.group(1).strip()
-    ).lower()
-
-    if raw_status == "supported":
-        status = "Supported"
-    elif raw_status == "partially supported":
-        status = "Partially Supported"
-    else:
-        status = "Unsupported"
-
-    reason_match = re.search(
-        r"^\s*REASON\s*[:\-]\s*(.*)",
-        cleaned_output,
-        re.IGNORECASE | re.MULTILINE | re.DOTALL,
-    )
-
-    reason = (
-        reason_match.group(1).strip()
-        if reason_match and reason_match.group(1).strip()
-        else "The model returned a status without a detailed reason."
-    )
-
-    return {
-        "status": status,
-        "reason": reason,
-    }
-
-
-
 
  
    
