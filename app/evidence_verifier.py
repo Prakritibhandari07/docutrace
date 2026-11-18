@@ -274,7 +274,7 @@ Unsupported
         raw_response = generate_text(
             prompt=prompt,
             temperature=0.0,
-            max_tokens=160,
+            max_tokens=300,
             timeout=120,
         )
 
