@@ -69,14 +69,13 @@ def extract_claims(answer: str):
 
     claims = []
 
-    # Each sentence should be associated with the citations
-    # immediately following that sentence.
-    pattern = re.compile(
+    # Find sentences and their immediately following citations.
+    sentence_pattern = re.compile(
         r"([^.!?]+[.!?])\s*((?:\[\s*E\d+\s*\]\s*)*)",
         re.IGNORECASE
     )
 
-    matches = list(pattern.finditer(answer))
+    matches = list(sentence_pattern.finditer(answer))
 
     for match in matches:
         claim_text = match.group(1).strip()
@@ -95,6 +94,44 @@ def extract_claims(answer: str):
                     item.upper() for item in evidence_ids
                 ))
             })
+
+    # Handle citations placed at the end of the entire answer.
+    # These cannot be reliably assigned to individual sentences.
+    if not any(item["evidence_ids"] for item in claims):
+        trailing_citations = re.search(
+            r"((?:\[\s*E\d+\s*\]\s*)+)$",
+            answer.strip(),
+            re.IGNORECASE
+        )
+
+        if trailing_citations:
+            evidence_ids = re.findall(
+                r"\[\s*(E\d+)\s*\]",
+                trailing_citations.group(1),
+                re.IGNORECASE
+            )
+
+            evidence_ids = list(dict.fromkeys(
+                item.upper() for item in evidence_ids
+            ))
+
+            text_without_citations = answer[
+                :trailing_citations.start()
+            ].strip()
+
+            sentences = re.split(
+                r"(?<=[.!?])\s+",
+                text_without_citations
+            )
+
+            claims = [
+                {
+                    "claim": sentence.strip(),
+                    "evidence_ids": evidence_ids.copy()
+                }
+                for sentence in sentences
+                if sentence.strip()
+            ]
 
     return claims
 
