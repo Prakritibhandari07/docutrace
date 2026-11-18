@@ -25,11 +25,11 @@ def generate_text(
 ):
     """
     Generate text using local Ollama or hosted OpenRouter.
-    Local Ollama remains the default.
+    Reject empty or malformed model responses.
     """
-    
+
     provider = get_config("LLM_PROVIDER", "ollama").lower()
-    
+
     if provider == "ollama":
         payload = {
             "model": OLLAMA_MODEL,
@@ -48,7 +48,16 @@ def generate_text(
         )
         response.raise_for_status()
 
-        return response.json().get("response", "").strip()
+        data = response.json()
+        output = str(data.get("response") or "").strip()
+
+        if not output:
+            raise ValueError(
+                f"Ollama returned an empty response. "
+                f"Response fields: {list(data.keys())}"
+            )
+
+        return output
 
     if provider == "openrouter":
         api_key = get_config("OPENROUTER_API_KEY")
@@ -76,7 +85,24 @@ def generate_text(
         )
         response.raise_for_status()
 
-        content = response.json()["choices"][0]["message"]["content"]
-        return (content or "").strip()
+        data = response.json()
+
+        try:
+            content = data["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError):
+            raise ValueError(
+                f"OpenRouter returned an unexpected response: {data}"
+            )
+
+        output = str(content or "").strip()
+
+        if not output:
+            raise ValueError(
+                f"OpenRouter returned empty message content. "
+                f"Response: {data}"
+            )
+
+        return output
 
     raise ValueError(f"Unsupported LLM_PROVIDER: {provider}")
+
