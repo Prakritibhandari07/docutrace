@@ -1025,416 +1025,107 @@ def display_cited_evidence(
 
 
 
-def display_evidence_verification(
-
-
-
-    answer,
-
-
-
-    evidence
-
-
-
-):
-
-
-
-    if not answer or not evidence:
-
-
-
-        return
-
-
-
-    citation_ids = extract_citation_ids(
-
-
-
-        answer
-
-
-
-    )
-
-
-
-    if not citation_ids:
-
-
-
-        return
-
-
-
-    st.markdown(
-
-
-
-        "### 🔎 Evidence Verification"
-
-
-
-    )
-
-
-
-    with st.spinner(
-
-
-
-        "Verifying claims against document evidence..."
-
-
-
-    ):
-
-
-
-        try:
-
-
-
-            verification_results = verify_answer(
-
-
-
-                answer,
-
-
-
-                evidence
-
-
-
-            )
-
-
-
-
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            st.error(
-                f"Evidence verification failed: {e}"
-            )
-            return
-
-    if not verification_results:
-        st.info(
-            "No cited claims were available for verification."
-        )
-
-
-
-
-    if not verification_results:
-
-
-
-        st.info(
-
-
-
-            "No cited claims were available for verification."
-
-
-
-        )
-
-
-
-        return
-
-
-
-    supported_count = 0
-    partial_count = 0
-    unsupported_count = 0
-    verification_error_count = 0
-
-
-
-    for result in verification_results:
-
-
-
-        status = result.get(
-
-
-
-            "status",
-
-
-
-            "Verification Error"
-
-
-
-        )
-
-
-
-        if status == "Supported":
-
-
-
-            icon = "✅"
-
-
-
-            supported_count += 1
-
-
-
-        elif status == "Partially Supported":
-
-
-
-            icon = "⚠️"
-
-
-
-            partial_count += 1
-
-
-
-        elif status == "Verification Error":
-
-            icon = "⚙️"
-            verification_error_count += 1
-
-        else:
-
-            icon = "❌"
-            unsupported_count += 1
-
-
-        st.markdown(
-
-
-
-            f"#### {icon} {status}"
-
-
-
-        )
-
-
-
-        st.write(
-
-
-
-            result.get(
-
-
-
-                "claim",
-
-
-
-                ""
-
-
-
-            )
-
-
-
-        )
-
-
-
-        evidence_ids = result.get(
-
-
-
-            "evidence_ids",
-
-
-
-            []
-
-
-
-        )
-
-
-
-        if evidence_ids:
-
-
-
-            st.caption(
-
-
-
-                "Evidence: "
-
-
-
-                + ", ".join(
-
-
-
-                    evidence_ids
-
-
-
-                )
-
-
-
-            )
-
-
-
-        reason = result.get(
-
-
-
-            "reason",
-
-
-
-            ""
-
-
-
-        )
-
-
-
-        if reason:
-
-
-
-            st.caption(
-
-
-
-                f"Reason: {reason}"
-
-
-
-            )
-        
-        # Show the result for each citation separately
-        citation_results = result.get("citation_results", [])
-
-        for citation in citation_results:
-            citation_id = citation.get("evidence_id", "Unknown")
-            citation_status = citation.get("status", "Unknown")
-            citation_reason = citation.get("reason", "")
-
-            st.write(
-                f"**{citation_id}: {citation_status}**"
-            )
-
-            if citation_reason:
-                st.caption(citation_reason)
-
-
-
-
-        st.markdown("---")
-
-
-
-    # Verification summary
-
-
-
-    st.markdown(
-
-
-
-        "**Verification Summary**"
-
-
-
-    )
-
-
-
-    col1, col2, col3, col4 = st.columns(4)
-
-
-
-    with col1:
-
-
-
-        st.metric(
-
-
-
-            "Supported",
-
-
-
-            supported_count
-
-
-
-        )
-
-
-
-    with col2:
-
-
-
-        st.metric(
-
-
-
-            "Partially Supported",
-
-
-
-            partial_count
-
-
-
-        )
-
-
-
-    with col3:
-
-
-
-        st.metric(
-
-
-
-            "Unsupported",
-
-
-
-            unsupported_count
-
-
-
-        )
-
-    with col4:
-
-        st.metric(
-
-            "Verification Errors",
-
-            verification_error_count
-
-        )
 
 
 # ============================================================
 
+
+def display_evidence_verification(answer, evidence):
+    """
+    Verify claims and clearly distinguish supported citations
+    from rejected citations.
+    """
+
+    if not answer or not evidence:
+        return
+
+    citation_ids = extract_citation_ids(answer)
+
+    if not citation_ids:
+        return
+
+    st.markdown("### 🔎 Evidence Verification")
+
+    with st.spinner("Verifying claims against document evidence..."):
+        try:
+            verification_results = verify_answer(answer, evidence)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            st.error(f"Evidence verification failed: {e}")
+            return
+
+    if not verification_results:
+        st.info("No cited claims were available for verification.")
+        return
+
+    supported_count = 0
+    partial_count = 0
+    unsupported_count = 0
+    error_count = 0
+
+    for result in verification_results:
+        status = result.get("status", "Verification Error")
+        claim = result.get("claim", "")
+
+        if status == "Supported":
+            icon = "✅"
+            supported_count += 1
+        elif status == "Partially Supported":
+            icon = "⚠️"
+            partial_count += 1
+        elif status == "Unsupported":
+            icon = "❌"
+            unsupported_count += 1
+        else:
+            icon = "⚙️"
+            error_count += 1
+
+        st.markdown(f"#### {icon} {status}")
+        st.write(claim)
+
+        # Show only citations that passed verification as supporting evidence.
+        supported_ids = result.get("evidence_ids", [])
+        partial_ids = result.get("partial_evidence_ids", [])
+
+        if supported_ids:
+            st.caption("Supported evidence: " + ", ".join(supported_ids))
+
+        if partial_ids:
+            st.caption("Partially supporting evidence: " + ", ".join(partial_ids))
+
+        reason = result.get("reason", "")
+        if reason:
+            st.caption(f"Reason: {reason}")
+
+        # Show individual citation outcomes.
+        for citation in result.get("citation_results", []):
+            citation_id = citation.get("evidence_id", "Unknown")
+            citation_status = citation.get("status", "Unknown")
+            citation_reason = citation.get("reason", "")
+
+            st.write(f"**{citation_id}: {citation_status}**")
+
+            if citation_reason:
+                st.caption(citation_reason)
+
+        st.markdown("---")
+
+    st.markdown("**Verification Summary**")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric("Supported", supported_count)
+
+    with col2:
+        st.metric("Partially Supported", partial_count)
+
+    with col3:
+        st.metric("Unsupported", unsupported_count)
+
+    with col4:
+        st.metric("Verification Errors", error_count)
 
 
 # HEADER
