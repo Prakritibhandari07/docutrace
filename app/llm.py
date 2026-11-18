@@ -112,20 +112,26 @@ IMPORTANT RULES:
    users and better bandwidth usage through packets from multiple sources,
    when these statements appear in the evidence.  
 
-10. Prioritize evidence that directly answers the user's question.
-    Do not select other facts merely because they appear in the same passage.
+10. Evaluate each evidence passage independently before using it.
 
-11. Every citation must directly support the specific sentence
-    immediately before it.
+11. For every factual sentence, identify which evidence passage
+    directly establishes that specific statement.
 
-12. Do not attach a citation simply because it mentions the same
-    general topic as the sentence.
+12. Include an evidence ID only if its passage directly supports
+    the complete factual sentence.
 
-13. If E1 supports a statement but E4 does not, cite E1 only.
-    Do not include E4 as an additional citation.
+13. Do not cite evidence merely because it discusses the same
+    general subject or contains similar keywords.
 
-14. Use the smallest number of citations needed to support each
-    factual statement.
+14. If a passage is irrelevant, contradictory, or does not establish
+    the statement, exclude its evidence ID from the citation.
+
+15. Use the smallest number of citations needed for each sentence.
+
+16. Put citations immediately after the sentence they support.
+    Never combine citations for unrelated sentences.
+
+17. Never put all evidence IDs at the end of the entire answer.
 
 15. Avoid repeating the same fact.
 
