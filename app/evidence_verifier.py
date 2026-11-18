@@ -310,10 +310,8 @@ Unsupported
     if not status_match:
         return {
             "status": "Verification Error",
-            "reason": (
-                "Could not identify a valid status in the model response: "
-                + output[:250]
-            ),
+            "reason": "RAW VERIFIER RESPONSE: " + repr(output[:500]),
+               
         }
 
     raw_status = re.sub(
