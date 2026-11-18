@@ -64,73 +64,39 @@ def split_into_claims(text):
 
 
 def extract_claims(answer: str):
-    """
-    Extract individual claims and their associated evidence IDs.
-
-    Supports:
-        Claim one. [E1]
-        Claim two. [E2]
-        Claim one. Claim two. [E1]
-        Claim one. [E1][E2]
-
-    If several sentences precede one citation, the citation is
-    associated with each sentence in that segment.
-
-    Uncited sentences are also extracted, but receive no evidence
-    IDs. They will therefore be marked Unsupported.
-    """
     if not answer or not answer.strip():
         return []
 
-    citation_pattern = re.compile(
-        r"(?:\[\s*E\d+\s*\]\s*)+",
+    claims = []
+
+    # Each sentence should be associated with the citations
+    # immediately following that sentence.
+    pattern = re.compile(
+        r"([^.!?]+[.!?])\s*((?:\[\s*E\d+\s*\]\s*)*)",
         re.IGNORECASE
     )
 
-    claims = []
-    matches = list(citation_pattern.finditer(answer))
-    previous_end = 0
+    matches = list(pattern.finditer(answer))
 
     for match in matches:
-        # Text since the previous citation.
-        segment = answer[previous_end:match.start()]
+        claim_text = match.group(1).strip()
+        citation_text = match.group(2)
 
         evidence_ids = re.findall(
             r"\[\s*(E\d+)\s*\]",
-            match.group(),
+            citation_text,
             re.IGNORECASE
         )
 
-        evidence_ids = list(
-            dict.fromkeys(
-                evidence_id.upper()
-                for evidence_id in evidence_ids
-            )
-        )
-
-        segment_claims = split_into_claims(segment)
-
-        for claim in segment_claims:
+        if claim_text:
             claims.append({
-                "claim": claim,
-                "evidence_ids": evidence_ids.copy()
+                "claim": claim_text,
+                "evidence_ids": list(dict.fromkeys(
+                    item.upper() for item in evidence_ids
+                ))
             })
 
-        previous_end = match.end()
-
-    # Handle any text after the final citation.
-    # Such claims have no citation and cannot be supported by
-    # the verifier's citation-based evidence lookup.
-    remaining_text = answer[previous_end:]
-
-    for claim in split_into_claims(remaining_text):
-        claims.append({
-            "claim": claim,
-            "evidence_ids": []
-        })
-
     return claims
-
 
 # ============================================================
 # EVIDENCE LOOKUP
