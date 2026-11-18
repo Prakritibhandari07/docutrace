@@ -411,10 +411,11 @@ def build_evidence_reason(claim, evidence_items):
 
 
 
+
 def verify_claim(claim, evidence_ids, evidence):
     """
     Verify each citation independently.
-    Use lexical matching first and the LLM only for ambiguous cases.
+    Preserve genuine verification errors instead of hiding them.
     """
     if not evidence_ids:
         return {
@@ -428,6 +429,7 @@ def verify_claim(claim, evidence_ids, evidence):
     citation_results = []
     supported_ids = []
     partial_ids = []
+    error_ids = []
 
     for evidence_id in evidence_ids:
         claim_evidence = get_claim_evidence([evidence_id], evidence)
@@ -440,7 +442,6 @@ def verify_claim(claim, evidence_ids, evidence):
             })
             continue
 
-        # Include explicitly linked adjacent-page context.
         for item in evidence:
             if evidence_id in item.get("context_for", []):
                 if item not in claim_evidence:
@@ -451,7 +452,6 @@ def verify_claim(claim, evidence_ids, evidence):
             for item in claim_evidence
         )
 
-        # First check exact wording.
         normalized_claim = normalize_text(claim)
         normalized_evidence = normalize_text(evidence_text)
 
@@ -460,43 +460,35 @@ def verify_claim(claim, evidence_ids, evidence):
             reason = "The evidence explicitly contains the claim's wording."
 
         else:
-            # Check lexical overlap independently for this citation.
             lexical_status = direct_support_check(claim, evidence_text)
-            print("[Verifier Debug] Claim:", claim)
-            print("[Verifier Debug] Evidence ID:", evidence_id)
-            print("[Verifier Debug] Lexical status:", lexical_status)
-            print("[Verifier Debug] Evidence text:", repr(evidence_text[:500]))
-            print("CLAIM:", claim)
-            print("EVIDENCE ID:", evidence_id)
-            print("LEXICAL STATUS:", lexical_status)
-            print("EVIDENCE TEXT:", evidence_text[:500])
+
+            print(
+                f"[Verifier] {evidence_id}: "
+                f"lexical_status={lexical_status}"
+            )
 
             if lexical_status == "Supported":
                 status = "Supported"
                 reason = (
-                    "The cited passage contains strong overlap with "
-                    "the important terms and details of the claim."
+                    "The cited passage contains strong lexical overlap "
+                    "with the claim."
                 )
 
             elif lexical_status == "Unsupported":
                 status = "Unsupported"
                 reason = (
-                    "The cited passage does not contain enough of the "
-                    "important terms and details of the claim."
+                    "The cited passage does not contain enough matching "
+                    "terms to support the claim."
                 )
+
             else:
-                # Use the LLM only when lexical matching is inconclusive.
                 try:
                     llm_result = llm_verify_claim(
                         claim,
                         claim_evidence
                     )
-                    print("[Verifier Debug] LLM fallback triggered for:", evidence_id)
 
-                    status = llm_result.get(
-                        "status",
-                        "Verification Error"
-                    )
+                    status = llm_result.get("status", "Verification Error")
                     reason = llm_result.get(
                         "reason",
                         "No verification reason was provided."
@@ -507,23 +499,18 @@ def verify_claim(claim, evidence_ids, evidence):
                         "Partially Supported",
                         "Unsupported",
                     }:
-                        status = "Partially Supported"
-                        reason = (
-                            "The evidence has some matching details, "
-                            "but semantic verification was inconclusive."
-                        )
+                        status = "Verification Error"
 
-                except Exception:
-                    status = "Partially Supported"
-                    reason = (
-                        "The evidence has some matching details, "
-                        "but the language model could not complete verification."
-                    )
-            
+                except Exception as exc:
+                    status = "Verification Error"
+                    reason = f"Verification failed: {exc}"
+
         if status == "Supported":
             supported_ids.append(evidence_id)
         elif status == "Partially Supported":
             partial_ids.append(evidence_id)
+        elif status == "Verification Error":
+            error_ids.append(evidence_id)
 
         citation_results.append({
             "evidence_id": evidence_id,
@@ -541,6 +528,9 @@ def verify_claim(claim, evidence_ids, evidence):
         overall_reason = (
             "The cited passages provide partial support for this claim."
         )
+    elif error_ids:
+        overall_status = "Verification Error"
+        overall_reason = "One or more citations could not be verified."
     else:
         overall_status = "Unsupported"
         overall_reason = (
