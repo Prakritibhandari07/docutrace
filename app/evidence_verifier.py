@@ -294,21 +294,18 @@ Unsupported
             "reason": f"Verification failed: {exc}",
         }
 
-    # First, look for an explicit STATUS field.
+    
+    # Normalize common Markdown formatting before parsing.
+    cleaned_output = output.replace("**", "").replace("__", "").strip()
+
+    # Accept STATUS: Supported, STATUS - Supported,
+    # or a standalone status line.
     status_match = re.search(
-        r"^\s*(?:\*\*)?\s*STATUS\s*:\s*"
-        r"(Partially\s+Supported|Unsupported|Supported)\b",
-        output,
+        r"^\s*(?:STATUS\s*[:\-]\s*)?"
+        r"(Partially\s+Supported|Unsupported|Supported)\s*[.!]?\s*$",
+        cleaned_output,
         re.IGNORECASE | re.MULTILINE,
     )
-
-    # Fallback: accept a response containing only a status.
-    if not status_match:
-        status_match = re.search(
-            r"^\s*(Partially\s+Supported|Unsupported|Supported)\s*$",
-            output,
-            re.IGNORECASE | re.MULTILINE,
-        )
 
     if not status_match:
         return {
@@ -333,13 +330,13 @@ Unsupported
         status = "Unsupported"
 
     reason_match = re.search(
-        r"^\s*(?:\*\*)?\s*REASON\s*:\s*(.*)",
-        output,
+        r"^\s*REASON\s*[:\-]\s*(.*)",
+        cleaned_output,
         re.IGNORECASE | re.MULTILINE | re.DOTALL,
     )
 
     reason = (
-        reason_match.group(1).strip().strip("*").strip()
+        reason_match.group(1).strip()
         if reason_match and reason_match.group(1).strip()
         else "The model returned a status without a detailed reason."
     )
