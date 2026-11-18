@@ -165,15 +165,9 @@ def get_claim_evidence(evidence_ids, evidence):
 
 def direct_support_check(claim, evidence_text):
     """
-    Calculate lexical overlap as a preliminary signal.
-
-    Lexical overlap alone does not prove that a claim is supported.
-    This function is retained for diagnostics and testing.
+    Calculate lexical overlap using normalized, unique words.
+    This is a preliminary matching signal, not proof of entailment.
     """
-    claim_words = re.findall(
-        r"\b[a-zA-Z0-9]+\b",
-        normalize_text(claim)
-    )
 
     stop_words = {
         "the", "a", "an", "is", "are", "was", "were",
@@ -184,34 +178,38 @@ def direct_support_check(claim, evidence_text):
         "between", "before", "after", "during"
     }
 
-    meaningful_words = [
-        word for word in claim_words
-        if word not in stop_words and len(word) > 2
-    ]
+    def get_words(text):
+        words = re.findall(
+            r"\b[a-zA-Z0-9]+\b",
+            normalize_text(text)
+        )
 
-    if not meaningful_words:
+        return {
+            word for word in words
+            if word not in stop_words and len(word) > 2
+        }
+
+    claim_words = get_words(claim)
+    evidence_words = get_words(evidence_text)
+
+    if not claim_words:
         return None
 
-    evidence_words = set(
-        re.findall(
-            r"\b[a-zA-Z0-9]+\b",
-            normalize_text(evidence_text)
-        )
-    )
+    matched_words = claim_words.intersection(evidence_words)
+    overlap_ratio = len(matched_words) / len(claim_words)
 
-    matched_words = [
-        word for word in meaningful_words
-        if word in evidence_words
-    ]
-
-    overlap_ratio = len(matched_words) / len(meaningful_words)
+    print("[Verifier Debug] Claim:", claim)
+    print("[Verifier Debug] Claim words:", sorted(claim_words))
+    print("[Verifier Debug] Matched words:", sorted(matched_words))
+    print("[Verifier Debug] Overlap:", round(overlap_ratio, 3))
 
     if overlap_ratio >= 0.60:
         return "Supported"
+
     if overlap_ratio >= 0.35:
         return "Partially Supported"
-    return "Unsupported"
 
+    return "Unsupported"
 
 # ============================================================
 # LLM VERIFICATION
