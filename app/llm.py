@@ -152,6 +152,8 @@ IMPORTANT RULES:
     statement is not explicitly supported.
 27. Distinguish between whether a benefit is stated in the document and whether
     the document explains the mechanism behind that benefit.
+28. Every sentence must have its own citation immediately after it.
+    Never attach an evidence ID that does not directly support that sentence.   
 
 CITATION EXAMPLE:
 
