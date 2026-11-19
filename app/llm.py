@@ -230,7 +230,16 @@ Write the answer now.
     except requests.exceptions.RequestException as error:
         print("OLLAMA REQUEST ERROR:", error)
         return f"An error occurred while contacting Ollama: {error}"
+    
+    except ValueError as error:
+        if "empty response" in str(error).lower():
+            return (
+                "The provided documents do not contain enough "
+                "evidence to answer this question."
+            )
 
+        return f"An unexpected error occurred: {error}"
+    
     except Exception as error:
         print("UNEXPECTED ERROR:", error)
         return f"An unexpected error occurred: {error}"
