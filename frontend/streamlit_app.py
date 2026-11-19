@@ -1016,6 +1016,60 @@ def display_cited_evidence(
 # ============================================================
 
 
+def filter_answer_citations(answer, verification_results):
+    """Remove citations explicitly rejected by verification."""
+
+    import re
+
+    pattern = re.compile(
+        r"([^.!?]+[.!?])\s*((?:\[\s*E\d+\s*\]\s*)*)"
+    )
+
+    results_by_claim = {
+        result.get("claim", "").strip(): result
+        for result in verification_results
+    }
+
+    def replace_citations(match):
+        sentence = match.group(1)
+        original_citations = match.group(2)
+
+        result = results_by_claim.get(sentence.strip())
+
+        if not result:
+            return match.group(0)
+
+        citation_results = result.get("citation_results", [])
+
+        rejected_ids = {
+            item.get("evidence_id", "").upper()
+            for item in citation_results
+            if item.get("status") == "Unsupported"
+        }
+
+        if not rejected_ids:
+            return match.group(0)
+
+        original_ids = re.findall(
+            r"\[\s*(E\d+)\s*\]",
+            original_citations,
+            re.IGNORECASE
+        )
+
+        remaining_ids = [
+            item.upper()
+            for item in original_ids
+            if item.upper() not in rejected_ids
+        ]
+
+        citations = " ".join(
+            f"[{item}]" for item in dict.fromkeys(remaining_ids)
+        )
+
+        return sentence + (" " + citations if citations else "")
+
+    return pattern.sub(replace_citations, answer)
+
 
 # EVIDENCE VERIFICATION UI
 
@@ -1057,7 +1111,9 @@ def display_evidence_verification(answer, evidence):
 
     if not verification_results:
         st.info("No cited claims were available for verification.")
-        return
+        return answer
+
+    answer = filter_answer_citations(answer, verification_results)
 
     supported_count = 0
     partial_count = 0
@@ -1126,6 +1182,8 @@ def display_evidence_verification(answer, evidence):
 
     with col4:
         st.metric("Verification Errors", error_count)
+
+    return answer
 
 
 # HEADER
@@ -1717,27 +1775,10 @@ if st.button(
                     st.error(answer)
                     st.stop()
 
-                st.markdown(
+                answer = display_evidence_verification(answer, evidence)
 
-
-
-                    "### Answer"
-
-
-
-                )
-
-
-
-                st.markdown(
-
-
-
-                    answer
-
-
-
-                )
+                st.markdown("### Answer")
+                st.markdown(answer)
 
 
 
