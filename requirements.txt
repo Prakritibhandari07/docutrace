@@ -7,3 +7,5 @@ pypdf==6.17.0
 openai==3.8.0
 python-dotenv==1.2.3
 pytest
+langchain-text-splitters
+requests
