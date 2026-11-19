@@ -70,7 +70,7 @@ def extract_claims(answer: str):
 
     claims = []
 
-    # Process each paragraph independently.
+    # Split the answer into paragraphs.
     paragraphs = re.split(r"\n\s*\n", answer.strip())
 
     sentence_pattern = re.compile(
@@ -84,6 +84,7 @@ def extract_claims(answer: str):
         if not matches:
             continue
 
+        # Find unique evidence IDs in this paragraph.
         paragraph_ids = list(dict.fromkeys(
             item.upper()
             for item in re.findall(
@@ -93,9 +94,8 @@ def extract_claims(answer: str):
             )
         ))
 
-        # Inherit a single unique paragraph citation as a
-        # candidate for uncited sentences. Each claim is
-        # still independently checked by the verifier.
+        # If the paragraph has exactly one citation,
+        # use it as a candidate for uncited sentences.
         inherited_ids = paragraph_ids if len(paragraph_ids) == 1 else []
 
         for match in matches:
