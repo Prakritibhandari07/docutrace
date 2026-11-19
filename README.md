@@ -4,7 +4,7 @@
 
 **DocuTrace** is an AI-powered document intelligence application that helps users search PDF documents, ask natural-language questions, and compare information across multiple documents using evidence-backed answers.
 
-Built with Python and Streamlit, DocuTrace uses Retrieval-Augmented Generation (RAG), ChromaDB vector search, Sentence Transformers, and a locally running Ollama language model to generate answers grounded in document content, with supporting evidence and page-level citations.
+Built with Python and Streamlit, DocuTrace uses Retrieval-Augmented Generation (RAG), ChromaDB vector search, and Sentence Transformers. It supports local language model inference through Ollama and hosted inference through OpenRouter to generate answers grounded in document content, with supporting evidence and page-level citations.
 
 ## Key Features
 
@@ -15,6 +15,10 @@ Built with Python and Streamlit, DocuTrace uses Retrieval-Augmented Generation (
 - **Evidence Verification:** Evaluate answer claims against retrieved document evidence.
 - **Multi-Document Comparison:** Compare information across multiple documents using retrieved evidence.
 - **Document Library:** Manage and reuse indexed documents.
+
+**Live Demo:** https://docutrace-8rsvw8fsbtcv4a4dldzzdz.streamlit.app/
+
+**GitHub Repository:** https://github.com/Prakritibhandari07/docutrace
 
 ## Technology Stack
 
@@ -27,6 +31,7 @@ Built with Python and Streamlit, DocuTrace uses Retrieval-Augmented Generation (
 | Ollama | Local language model inference |
 | PyPDF | PDF text extraction |
 | pytest | Automated testing |
+| OpenRouter | Hosted language model inference |
 
 
 ## Installation and Setup
@@ -153,8 +158,8 @@ flowchart TD
 
 - **Local LLM inference:** Runs Qwen 2.5 3B through Ollama.
 - **Persistent vector storage:** Uses ChromaDB to retain indexed document chunks.
-- **Evidence-grounded generation:** Supplies retrieved document passages as context for answer generation.
-- **Deterministic citation matching:** Uses text similarity and keyword overlap to associate answer claims with supporting evidence.
+- **Deterministic citation matching:** Uses text similarity and keyword overlap to associate answer claims with potentially relevant evidence.
+- **Evidence verification:** Separately evaluates whether cited document passages support the corresponding answer claims.
 - **Context-aware retrieval:** Retrieves adjacent-page context to help resolve references spanning PDF pages.
 
 ### Main components
@@ -175,7 +180,7 @@ Run the automated test suite from the project root:
 python -m pytest app -q
 ```
 
-The current test suite has **75 passing tests and 2 skipped tests**. The skipped tests are optional Ollama integration tests.
+The current test suite has **75 passing tests and 2 skipped tests**.
 
 ## Design Goals
 
