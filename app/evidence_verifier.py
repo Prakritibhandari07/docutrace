@@ -455,10 +455,10 @@ def verify_claim(claim, evidence_ids, evidence):
 
 
 def verify_answer(answer, evidence):
-    print("DOCUTRACE VERSION: f496824 — VERIFY ANSWER CALLED")
+    
     """Verify each claim and preserve independently supported citations."""
     claims = extract_claims(answer)
-    print("EXTRACTED CLAIMS:", claims)
+    
     verification_results = []
 
     for claim_data in claims:
