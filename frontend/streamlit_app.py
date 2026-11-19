@@ -1739,31 +1739,11 @@ if st.button(
 
 
     else:
-
-
-
-        with st.spinner(
-
-
-
-            "Searching documents and generating answer..."
-
-
-
-        ):
-
-
-
+        with st.spinner("Searching documents and generating answer..."):
             try:
-
-
-
                 answer, evidence = run_rag(
-
                     query,
-
                     document_ids=selected_documents
-
                 )
 
                 if answer.startswith((
@@ -1775,11 +1755,17 @@ if st.button(
                     st.error(answer)
                     st.stop()
 
+                st.markdown("### Answer")
+                answer_placeholder = st.empty()
+
                 answer = display_evidence_verification(answer, evidence)
 
-                st.markdown("### Answer")
-                st.markdown(answer)
+                answer_placeholder.markdown(answer)
 
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+
+                
 
 
                 # ------------------------------------------------
