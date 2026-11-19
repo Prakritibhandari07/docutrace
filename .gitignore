@@ -1,9 +1,40 @@
-venv/
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment variables and secrets
 .env
+.env.*
+!.env.example
+
+# Streamlit
+.streamlit/secrets.toml
+
+# ChromaDB and local databases
 chroma_db/
+*.db
+*.sqlite
+*.sqlite3
+
+# Local document data
 data/*.pdf
 data/documents.json
-.venv/
-*.db
+
+# Test and cache files
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
