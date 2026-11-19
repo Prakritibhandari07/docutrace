@@ -160,7 +160,9 @@ CITATION EXAMPLE:
 
 Evidence:
 [E1] A performance measure is a subjective measure used to
-characterize how successful an agent is.
+characterize how successful an agent is. It can be measured
+in terms of speed, accuracy or quality of solutions,
+power consumption, cost, etc.
 
 [E4] A list of introductory topics including intelligent agents
 and agent behaviour.
@@ -169,8 +171,15 @@ Question:
 What is an agent's performance measure?
 
 Correct answer:
-An agent's performance measure is a subjective measure used to
-characterize how successful an agent is. [E1]
+An agent's performance measure is a subjective measure used
+to characterize how successful an agent is. [E1]
+
+It can be measured in terms of speed, accuracy or quality
+of solutions, power consumption, cost, etc. [E1]
+
+Both sentences must have their own citation.
+Do not leave the first sentence uncited merely because
+the second sentence uses the same evidence passage.
 
 Incorrect answer:
 An agent's performance measure is a subjective measure used to
@@ -191,7 +200,7 @@ Write the answer now.
         raw_answer = generate_text(
             prompt=prompt,
             temperature=0.0,
-            max_tokens=500,
+            max_tokens=1500,
             timeout=180,
         )
 
@@ -232,14 +241,19 @@ Write the answer now.
         return f"An error occurred while contacting Ollama: {error}"
     
     except ValueError as error:
-        if "empty response" in str(error).lower():
+        error_message = str(error).lower()
+
+        if (
+            "empty response" in error_message
+            or "empty message content" in error_message
+        ):
             return (
                 "The provided documents do not contain enough "
                 "evidence to answer this question."
             )
 
         return f"An unexpected error occurred: {error}"
-    
+
     except Exception as error:
         print("UNEXPECTED ERROR:", error)
-        return f"An unexpected error occurred: {error}"
+        return f"An unexpected error occurred: {error}"    
