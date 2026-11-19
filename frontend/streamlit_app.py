@@ -1016,13 +1016,13 @@ def display_cited_evidence(
 # ============================================================
 
 
-def filter_answer_citations(answer, verification_results):
-    """Remove citations explicitly rejected by verification."""
 
-    import re
+def filter_answer_citations(answer, verification_results):
+    """Keep verified citations and restore accepted paragraph citations."""
 
     pattern = re.compile(
-        r"([^.!?]+[.!?])\s*((?:\[\s*E\d+\s*\]\s*)*)"
+        r"([^.!?]+[.!?])\s*((?:\[\s*E\d+\s*\]\s*)*)",
+        re.IGNORECASE
     )
 
     results_by_claim = {
@@ -1047,8 +1047,10 @@ def filter_answer_citations(answer, verification_results):
             if item.get("status") == "Unsupported"
         }
 
-        if not rejected_ids:
-            return match.group(0)
+        accepted_ids = (
+            result.get("evidence_ids", [])
+            + result.get("partial_evidence_ids", [])
+        )
 
         original_ids = re.findall(
             r"\[\s*(E\d+)\s*\]",
@@ -1056,14 +1058,17 @@ def filter_answer_citations(answer, verification_results):
             re.IGNORECASE
         )
 
+        candidate_ids = original_ids or accepted_ids
+
         remaining_ids = [
             item.upper()
-            for item in original_ids
+            for item in candidate_ids
             if item.upper() not in rejected_ids
         ]
 
         citations = " ".join(
-            f"[{item}]" for item in dict.fromkeys(remaining_ids)
+            f"[{item}]"
+            for item in dict.fromkeys(remaining_ids)
         )
 
         return sentence + (" " + citations if citations else "")

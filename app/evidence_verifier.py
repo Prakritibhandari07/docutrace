@@ -63,75 +63,61 @@ def split_into_claims(text):
     return claims
 
 
+
 def extract_claims(answer: str):
     if not answer or not answer.strip():
         return []
 
     claims = []
 
-    # Find sentences and their immediately following citations.
+    # Process each paragraph independently.
+    paragraphs = re.split(r"\n\s*\n", answer.strip())
+
     sentence_pattern = re.compile(
         r"([^.!?]+[.!?])\s*((?:\[\s*E\d+\s*\]\s*)*)",
         re.IGNORECASE
     )
 
-    matches = list(sentence_pattern.finditer(answer))
+    for paragraph in paragraphs:
+        matches = list(sentence_pattern.finditer(paragraph))
 
-    for match in matches:
-        claim_text = match.group(1).strip()
-        citation_text = match.group(2)
+        if not matches:
+            continue
 
-        evidence_ids = re.findall(
-            r"\[\s*(E\d+)\s*\]",
-            citation_text,
-            re.IGNORECASE
-        )
-
-        if claim_text:
-            claims.append({
-                "claim": claim_text,
-                "evidence_ids": list(dict.fromkeys(
-                    item.upper() for item in evidence_ids
-                ))
-            })
-
-    # Handle citations placed at the end of the entire answer.
-    # These cannot be reliably assigned to individual sentences.
-    if not any(item["evidence_ids"] for item in claims):
-        trailing_citations = re.search(
-            r"((?:\[\s*E\d+\s*\]\s*)+)$",
-            answer.strip(),
-            re.IGNORECASE
-        )
-
-        if trailing_citations:
-            evidence_ids = re.findall(
+        paragraph_ids = list(dict.fromkeys(
+            item.upper()
+            for item in re.findall(
                 r"\[\s*(E\d+)\s*\]",
-                trailing_citations.group(1),
+                paragraph,
                 re.IGNORECASE
             )
+        ))
+
+        # Inherit a single unique paragraph citation as a
+        # candidate for uncited sentences. Each claim is
+        # still independently checked by the verifier.
+        inherited_ids = paragraph_ids if len(paragraph_ids) == 1 else []
+
+        for match in matches:
+            claim_text = match.group(1).strip()
 
             evidence_ids = list(dict.fromkeys(
-                item.upper() for item in evidence_ids
+                item.upper()
+                for item in re.findall(
+                    r"\[\s*(E\d+)\s*\]",
+                    match.group(2),
+                    re.IGNORECASE
+                )
             ))
 
-            text_without_citations = answer[
-                :trailing_citations.start()
-            ].strip()
+            if not evidence_ids:
+                evidence_ids = inherited_ids.copy()
 
-            sentences = re.split(
-                r"(?<=[.!?])\s+",
-                text_without_citations
-            )
-
-            claims = [
-                {
-                    "claim": sentence.strip(),
-                    "evidence_ids": evidence_ids.copy()
-                }
-                for sentence in sentences
-                if sentence.strip()
-            ]
+            if claim_text:
+                claims.append({
+                    "claim": claim_text,
+                    "evidence_ids": evidence_ids
+                })
 
     return claims
 
