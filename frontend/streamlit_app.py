@@ -1084,19 +1084,19 @@ def filter_answer_citations(answer, verification_results):
 # ============================================================
 
 
+
 def display_evidence_verification(answer, evidence):
     """
-    Verify claims and clearly distinguish supported citations
+    Verify claims and distinguish supported citations
     from rejected citations.
     """
-
     if not answer or not evidence:
-        return
+        return answer
 
     citation_ids = extract_citation_ids(answer)
 
     if not citation_ids:
-        return
+        return answer
 
     st.markdown("### 🔎 Evidence Verification")
 
@@ -1107,7 +1107,7 @@ def display_evidence_verification(answer, evidence):
             import traceback
             traceback.print_exc()
             st.error(f"Evidence verification failed: {e}")
-            return
+            return answer
 
     if not verification_results:
         st.info("No cited claims were available for verification.")
@@ -1140,7 +1140,6 @@ def display_evidence_verification(answer, evidence):
         st.markdown(f"#### {icon} {status}")
         st.write(claim)
 
-        # Show only citations that passed verification as supporting evidence.
         supported_ids = result.get("evidence_ids", [])
         partial_ids = result.get("partial_evidence_ids", [])
 
@@ -1154,7 +1153,6 @@ def display_evidence_verification(answer, evidence):
         if reason:
             st.caption(f"Reason: {reason}")
 
-        # Show individual citation outcomes.
         for citation in result.get("citation_results", []):
             citation_id = citation.get("evidence_id", "Unknown")
             citation_status = citation.get("status", "Unknown")
@@ -1184,6 +1182,7 @@ def display_evidence_verification(answer, evidence):
         st.metric("Verification Errors", error_count)
 
     return answer
+
 
 
 # HEADER
