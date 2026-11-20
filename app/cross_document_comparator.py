@@ -267,30 +267,19 @@ def generate_comparison(query: str, context: str, evidence=None):
 
     if asks_two_sentences:
         format_rule = "Answer in exactly TWO concise sentences."
-        num_predict = 180
+        num_predict = 1000
     elif asks_one_difference:
         format_rule = "Give exactly ONE difference in one or two sentences."
-        num_predict = 150
+        num_predict = 1000
     else:
         format_rule = "Give a concise answer with 2-4 key points."
-        num_predict = 300
+        num_predict = 1500
 
     prompt = f"""
 You are DocuTrace, a document comparison assistant.
 
 Answer the user's question using ONLY the retrieved evidence.
 
-IMPORTANT CONCEPT DISTINCTION:
-- Treat "circuit switching" and "virtual circuit switching" as
-  DIFFERENT networking techniques.
-- Do not use evidence about virtual circuit switching to explain
-  traditional circuit switching.
-- When comparing two concepts, identify evidence that directly
-  describes each concept before stating their differences.
-- If the retrieved evidence does not adequately explain one concept,
-  explicitly say that the evidence is insufficient for that part.
-- Never combine facts about different techniques as though they
-  describe the same technique.
 
 MANDATORY CITATION RULES:
 - Every factual sentence must end with one or more valid evidence citations.
